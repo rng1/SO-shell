@@ -1,3 +1,12 @@
+/*
+ *    TITLE: SISTEMAS OPERATIVOS
+ * SUBTITLE: Lab Assignment 0
+ * AUTHOR 1: Martin do Rio Rico       LOGIN 1: martin.dorio
+ * AUTHOR 2: Rodrigo Naranjo Gonzalez LOGIN 2: r.naranjo
+ *    GROUP: 6.1
+ *     DATE: 24 / 09 / 21
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +14,14 @@
 #include <unistd.h>
 #include <time.h>
 
+#include "hist_list.h"
+
 #define DELIM " \t\n"
+
+/** FUNCTION DECLARATION */
+
+void new(char *cmd, tHistList *history);
+void show(tHistList *history);
 
 /** COMMANDS */
 
@@ -112,6 +128,21 @@ int cmd_date(char **tr)
     return 1;
 }
 
+int cmd_hist(char **tr, tHistList h)
+/*
+ * Shows the history of commands executed by the shell.
+ *  -c  clears the history
+ *  -N  prints the first N commands
+ */
+{
+    if (tr[1] == NULL)
+        show(&h);
+    else
+        printf("a");
+
+    return 1;
+}
+
 int cmd_infosis()
 /*
  * Prints the info on the machine running the shell using uname library
@@ -151,7 +182,7 @@ int cmd_ayuda(char **tr)
                 "DIRECT\t\tchange the current working directory to DIRECT\n%"
                 "fecha [-d|-h]\t\tprints the current date and time.\n\t-d\t\tprints the current "           // fecha
                 "date in the format dd/mm/yyyy\n\t-h\t\tprints the current time in the format hh:mm:ss\n%"
-                "hist [-c|-N]\t\tshows/clears the historic of commands executed by the shell.\n"            // hist
+                "hist [-c|-N]\t\tshows the history of commands executed by the shell.\n"            // hist
                 "\t-c\t\tclears the list\n\t-N\t\tprints the first N commands\n%"
                 "comando [N]\t\trepeats command number N\n%"                                                // comando
                 "infosis\t\tprints information on the machine running the shell.\n%"                        // infosis
@@ -214,10 +245,52 @@ int cmd_exit()
     return 0;
 }
 
+/** HISTORY */
+
+void new(char *cmd, tHistList *history)
+{
+    char *auxCmd = cmd;
+    if (insertCommand(auxCmd, history) == true) // TODO: revisar como crea el programa la lista de historial, sustituye cosas por algun motivo
+        printf("* New: cmd %s\n", auxCmd);
+    // ERROR
+    else
+        perror("history: New not possible\n");
+}
+
+void show(tHistList *history)
+{
+    int i = 0;
+
+    tHistData auxCmd;
+    //We declare a position to search for the item.
+    tHistPos pos;
+
+    /**ERROR*/
+    if (isEmptyList(*history) == true)
+        printf("Empty history: show not possible\n");
+    else
+    {
+        // Look for the position of the first user.
+        pos = first(*history);
+        // Create a loop which shows the current user and searches for the next one.
+        do
+        {
+            //auxCmd = *getCommand(pos, *history);
+            // Print the current user.
+            printf("* %d: %s\n", i, *getCommand(pos, *history));
+            // Move on to the next user.
+            pos = next(pos, *history);
+
+            i++;
+        }
+        while (pos != NULL);
+    }
+}
+
 /** MAIN LOOP */
 
 // Process the first word of the given array looking for a valid command
-int process(char **tr)
+int process(char **tr, tHistList h)
 {
     if (tr[0] != NULL)
     {
@@ -228,9 +301,9 @@ int process(char **tr)
         else if (strcmp(tr[0], "carpeta") == 0)
             return cmd_carpeta(tr);
         else if (strcmp(tr[0], "fecha") == 0)
-            return cmd_date(tr);/*
+            return cmd_date(tr);
         else if (strcmp(tr[0], "hist") == 0)
-            return cmd_hist();
+            return cmd_hist(tr, h);/*
         else if (strcmp(tr[0], "comando") == 0)
             return cmd_comando();*/
         else if (strcmp(tr[0], "infosis") == 0)
@@ -311,12 +384,16 @@ void loop()
     char **args;
     int status;
 
+    tHistList history;
+    createEmptyList(&history);
+
     do
     {
         printf("$ ");
         cmd = read_cmd();
+        new(cmd, &history);
         args = split(cmd);
-        status = process(args);
+        status = process(args, history);
 
         free(cmd);
         free(args);
