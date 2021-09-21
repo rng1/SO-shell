@@ -1,29 +1,170 @@
-/*
- *    TITLE: SISTEMAS OPERATIVOS
- * SUBTITLE: Lab Assignment 0
- * AUTHOR 1: Martin do Rio Rico       LOGIN 1: martin.dorio
- * AUTHOR 2: Rodrigo Naranjo Gonzalez LOGIN 2: r.naranjo
- *    GROUP: 6.1
- *     DATE: 24 / 09 / 21
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/unistd.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
-#include <unistd.h>
-#include <time.h>
-
-#include "hist_list.h"
 
 #define DELIM " \t\n"
+#define ARRAY 4096
 
-/** FUNCTION DECLARATION */
+int cmd_authors(char **tr);
+int cmd_pid(char **tr);
+int cmd_carpeta(char **tr);
+int cmd_date(char **tr);
+int cmd_infosis();
+int cmd_ayuda(char **tr);
+int cmd_exit();
+int cmd_hist(char **tr, char* list[]);
 
-void new(char *cmd, tHistList *history);
-void show(tHistList *history);
 
-/** COMMANDS */
+int process(char **tr, char* list[])
+{
+    if (tr[0] != NULL)
+    {
+        if (strcmp(tr[0], "autores") == 0)
+            return cmd_authors(tr);
+        else if (strcmp(tr[0], "pid") == 0)
+            return cmd_pid(tr);
+        else if (strcmp(tr[0], "carpeta") == 0)
+            return cmd_carpeta(tr);
+        else if (strcmp(tr[0], "fecha") == 0)
+            return cmd_date(tr);
+        else if (strcmp(tr[0], "hist") == 0)
+            return cmd_hist(tr,list);/*
+        else if (strcmp(tr[0], "comando") == 0)
+            return cmd_comando();*/
+        else if (strcmp(tr[0], "infosis") == 0)
+            return cmd_infosis();
+        else if (strcmp(tr[0], "ayuda") == 0)
+            return cmd_ayuda(tr);
+        else if (strcmp(tr[0], "fin") == 0 || strcmp(tr[0], "salir") == 0 ||
+                 strcmp(tr[0], "bye") == 0 || strcmp(tr[0], "exit") == 0)
+            return cmd_exit();
+        else
+        {
+            printf("%s: command not found\n", tr[0]);
+            return (EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        return (EXIT_FAILURE);
+    }
+}
+
+char **split_cmd(char *cmd)
+{
+    int max_len = 50, pos = 0;
+    char *piece = strtok(cmd, DELIM);
+    char **tokens = malloc(sizeof(char*) * max_len);
+
+    if (!tokens) {
+        perror("Error: allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    while (piece != NULL)
+    {
+        tokens[pos++] = piece;
+        piece = strtok(NULL, DELIM);
+
+        if (pos >= max_len)
+        {
+            max_len += max_len;
+            tokens = realloc(tokens, sizeof(char*) * max_len);
+
+            if (!tokens) {
+                perror("Error: allocation error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    tokens[pos] = NULL;
+    return tokens;
+}
+
+/*char *read_cmd()
+{
+    char *cmd = NULL;
+    size_t len = 0;
+
+    if (getline(&cmd, &len, stdin) == -1)
+    {
+        if (feof(stdin))
+            exit(EXIT_SUCCESS);
+        else {
+            perror("Error read");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return cmd;
+}*/
+
+char *read_cmd()
+{
+    char *cmd = NULL;
+    size_t len = 0;
+
+    if (getline(&cmd, &len, stdin) == -1)
+    {
+        if (feof(stdin))
+            exit(EXIT_SUCCESS);
+        else {
+            perror("Error read_cmd");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return cmd;
+}
+
+void save_cmd(char *cmd, char *list[])
+{
+    char* line = strtok(cmd,"\n");
+    int i;
+    for(i = 0; list[i] != NULL; i++);
+    //list[i] = strdup(cmd);
+    list[i] = strdup(line);
+
+}
+
+void loop()
+{
+    char *cmd;
+    char **args;
+    int status;
+
+    int i = 0;
+    char *list[ARRAY];
+
+    do
+    {
+        printf("$ ");
+        cmd = read_cmd();
+        save_cmd(cmd, list);
+
+
+        args = split_cmd(cmd);
+        status = process(args, list);
+
+        free(cmd);
+        free(args);
+
+        i++;
+    } while (status);
+}
+
+int main()
+{
+    loop();
+    return EXIT_SUCCESS;
+}
+
+/**COMANDOS**/
+
 
 int cmd_authors(char **tr)
 /*
@@ -124,21 +265,6 @@ int cmd_date(char **tr)
         printf("%02d:%02d:%02d\n", current->tm_hour, current->tm_min, current->tm_sec);
     else
         printf("fecha: invalid option\n");
-
-    return 1;
-}
-
-int cmd_hist(char **tr, tHistList h)
-/*
- * Shows the history of commands executed by the shell.
- *  -c  clears the history
- *  -N  prints the first N commands
- */
-{
-    if (tr[1] == NULL)
-        show(&h);
-    else
-        printf("a");
 
     return 1;
 }
@@ -245,165 +371,20 @@ int cmd_exit()
     return 0;
 }
 
-/** HISTORY */
-
-void new(char *cmd, tHistList *history)
+int cmd_hist(char **tr, char* list[])
+/*
+ * Shows the history of commands executed by the shell.
+ *  -c  clears the history
+ *  -N  prints the first N commands
+ */
 {
-    char *auxCmd = cmd;
-    if (insertCommand(auxCmd, history) == true) // TODO: revisar como crea el programa la lista de historial, sustituye cosas por algun motivo
-        printf("* New: cmd %s\n", auxCmd);
-    // ERROR
-    else
-        perror("history: New not possible\n");
-}
-
-void show(tHistList *history)
-{
-    int i = 0;
-
-    tHistData auxCmd;
-    //We declare a position to search for the item.
-    tHistPos pos;
-
-    /**ERROR*/
-    if (isEmptyList(*history) == true)
-        printf("Empty history: show not possible\n");
-    else
-    {
-        // Look for the position of the first user.
-        pos = first(*history);
-        // Create a loop which shows the current user and searches for the next one.
-        do
-        {
-            //auxCmd = *getCommand(pos, *history);
-            // Print the current user.
-            printf("* %d: %s\n", i, *getCommand(pos, *history));
-            // Move on to the next user.
-            pos = next(pos, *history);
-
-            i++;
-        }
-        while (pos != NULL);
-    }
-}
-
-/** MAIN LOOP */
-
-// Process the first word of the given array looking for a valid command
-int process(char **tr, tHistList h)
-{
-    if (tr[0] != NULL)
-    {
-        if (strcmp(tr[0], "autores") == 0)
-            return cmd_authors(tr);
-        else if (strcmp(tr[0], "pid") == 0)
-            return cmd_pid(tr);
-        else if (strcmp(tr[0], "carpeta") == 0)
-            return cmd_carpeta(tr);
-        else if (strcmp(tr[0], "fecha") == 0)
-            return cmd_date(tr);
-        else if (strcmp(tr[0], "hist") == 0)
-            return cmd_hist(tr, h);/*
-        else if (strcmp(tr[0], "comando") == 0)
-            return cmd_comando();*/
-        else if (strcmp(tr[0], "infosis") == 0)
-            return cmd_infosis();
-        else if (strcmp(tr[0], "ayuda") == 0)
-            return cmd_ayuda(tr);
-        else if (strcmp(tr[0], "fin") == 0 || strcmp(tr[0], "salir") == 0 ||
-                 strcmp(tr[0], "bye") == 0 || strcmp(tr[0], "exit") == 0)
-            return cmd_exit();
-        else
-        {
-            printf("%s: command not found\n", tr[0]);
-            return 1;
+    if (tr[1] == NULL) {
+        for (int i = 0; list[i] != NULL; i++) {
+            printf("%d %s\n",i, list[i]);
         }
     }
     else
-    {
-        return 1;
-    }
-}
-
-// Split string into pieces
-char **split(char *cmd)
-{
-    int max_len = 50, pos = 0;
-    char *piece = strtok(cmd, DELIM);
-    char **tokens = malloc(sizeof(char*) * max_len);
-
-    if (!tokens) {
-        perror("Error: allocation error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    while (piece != NULL)
-    {
-        tokens[pos++] = piece;
-        piece = strtok(NULL, DELIM);
-
-        if (pos >= max_len)
-        {
-            max_len += max_len;
-            tokens = realloc(tokens, sizeof(char*) * max_len);
-
-            if (!tokens) {
-                perror("Error: allocation error\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-
-    tokens[pos] = NULL;
-    return tokens;
-}
-
-// Read command
-char *read_cmd()
-{
-    char *cmd = NULL;
-    size_t len = 0;
-
-    if (getline(&cmd, &len, stdin) == -1)
-    {
-        if (feof(stdin))              // No se muy bien qué hace esto,
-            exit(EXIT_SUCCESS);       // pero si nos preguntan estaría
-        else {                        // bien saberlo.    -R
-            perror("Error read_cmd");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    return cmd;
-}
-
-// Main loop
-void loop()
-{
-    char *cmd;
-    char **args;
-    int status;
-
-    tHistList history;
-    createEmptyList(&history);
-
-    do
-    {
-        printf("$ ");
-        cmd = read_cmd();
-        new(cmd, &history);
-        args = split(cmd);
-        status = process(args, history);
-
-        free(cmd);
-        free(args);
-    }
-    while (status);
-}
-
-int main()
-{
-    loop();
+        printf("HISTORIAL");
 
     return 1;
 }
