@@ -15,14 +15,15 @@
 #include <time.h>
 
 #define DELIM " \t\n"
-#define ARRAY 4036
+#define ARRAY 4096
 
 /** FUNCTION DECLARATION */
-
-int process(char **tr, char *history[]);
-char **split_cmd(char *cmd);
-char *read_cmd();
 void loop(char *history[]);
+
+int process_cmd(char **tr, char *history[]);
+void save_cmd(char *cmd, char *history[]);
+char *read_cmd();
+char **split_cmd(char *cmd);
 
 int cmd_authors(char **tr);
 int cmd_pid(char **tr);
@@ -34,8 +35,137 @@ int cmd_infosis();
 int cmd_ayuda(char **tr);
 int cmd_exit();
 
+int main()
+{
+    char *history[ARRAY];
+    loop(history);
+    return 1;
+}
+
+/** MAIN FUNCTIONS */
+
+// Main loop
+void loop(char *history[])
+{
+    char *cmd;
+    char **args;
+    int status;
+
+    do
+    {
+        printf("$ ");
+        cmd = read_cmd();
+        save_cmd(cmd, history);
+        args = split_cmd(cmd);
+        status = process_cmd(args, history);
+
+        free(cmd);
+        free(args);
+    } while (status);
+}
+
+/** TODO [COMPROBAR SI ES LEGAL] */
+// Save command to history
+void save_cmd(char *cmd, char *history[])
+{
+    char* line = strtok(cmd,"\n");
+    int i;
+    for(i = 0; history[i] != NULL; i++);
+    history[i] = strdup(line);
+}
+
+// Read command
+char *read_cmd()
+{
+    char *cmd = NULL;
+    size_t len = 0;
+
+    if (getline(&cmd, &len, stdin) == -1)
+    {
+        if (feof(stdin))
+            exit(EXIT_SUCCESS);
+        else {
+            perror("error (read)");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return cmd;
+}
+
+// Split string into pieces
+char **split_cmd(char *cmd)
+{
+    int max_len = 50, pos = 0;
+    char *piece = strtok(cmd, DELIM);
+    char **tokens = malloc(sizeof(char*) * max_len);
+
+    if (!tokens) {
+        //printf("Error: allocation error\n");
+        perror("error (split1)");
+        exit(EXIT_FAILURE);
+    }
+
+    while (piece != NULL)
+    {
+        tokens[pos++] = piece;
+        piece = strtok(NULL, DELIM);
+
+        if (pos >= max_len)
+        {
+            max_len += max_len;
+            tokens = realloc(tokens, sizeof(char*) * max_len);
+
+            if (!tokens) {
+                perror("error (split2)\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    tokens[pos] = NULL;
+    return tokens;
+}
+
+// Process the first word of the given array looking for a valid command
+int process_cmd(char **tr, char *history[])
+{
+    if (tr[0] != NULL)
+    {
+        if (strcmp(tr[0], "autores") == 0)
+            return cmd_authors(tr);
+        else if (strcmp(tr[0], "pid") == 0)
+            return cmd_pid(tr);
+        else if (strcmp(tr[0], "carpeta") == 0)
+            return cmd_carpeta(tr);
+        else if (strcmp(tr[0], "fecha") == 0)
+            return cmd_date(tr);
+        else if (strcmp(tr[0], "hist") == 0)
+            return cmd_hist(tr, history);
+        else if (strcmp(tr[0], "comando") == 0)
+            return cmd_comando(tr, history);
+        else if (strcmp(tr[0], "infosis") == 0)
+            return cmd_infosis();
+        else if (strcmp(tr[0], "ayuda") == 0)
+            return cmd_ayuda(tr);
+        else if (strcmp(tr[0], "fin") == 0 || strcmp(tr[0], "salir") == 0 ||
+                 strcmp(tr[0], "bye") == 0 || strcmp(tr[0], "exit") == 0)
+            return cmd_exit();
+        else
+        {
+            printf("%s: command not found\n", tr[0]);
+            return 1;
+        }
+    }
+    else
+    {
+        return 1;
+    }
+}
+
 /** COMMANDS */
 
+//REVISAR
 int cmd_authors(char **tr)
 /*
  * Print the names and logins of the program authors
@@ -49,22 +179,14 @@ int cmd_authors(char **tr)
     char log2[] = "martin.dorio";
 
     if (tr[1] == NULL)
-    {
-        printf("%s:%s\n", aut1, log1);
-        printf("%s:%s\n", aut2, log2);
-    }
+        printf("%s:%s\n%s:%s\n", aut1, log1, aut2, log2);
     else if (strcmp(tr[1],"-l") == 0)
-    {
-        printf("%s\n", log1);
-        printf("%s\n", log2);
-    }
+        printf("%s\n%s\n", log1, log2);
     else if (strcmp(tr[1],"-n") == 0)
-    {
-        printf("%s\n", aut1);
-        printf("%s\n", aut2);
-    }
+        printf("%s\n%s\n", aut1, aut2);
     else
         printf("autores: invalid option");
+
     return 1;
 }
 
@@ -78,15 +200,16 @@ int cmd_pid(char **tr)
 
     if (tr[1] == NULL)
     {
-        if ((pid = getpid()) < 0)
-            perror("unable to get pid");
+        if ((pid = getpid()) < 0) {
+            perror("pid");
+        }
         else
             printf("%d\n", pid);
     }
     else if (strcmp(tr[1], "-p") == 0)
     {
         if ((ppid = getppid()) < 0)
-            perror("unable to get the ppid");
+            perror("pid -p");
         else
             printf("%d\n", ppid);
     }
@@ -107,7 +230,7 @@ int cmd_carpeta(char **tr)
     if (tr[1] == NULL)
         printf("%s\n",getcwd(s,100));
     else if (chdir(tr[1]) != 0)
-        printf("carpeta: %s: No such file or directory\n", tr[1]);
+        perror("carpeta");
 
     return 1;
 }
@@ -153,19 +276,19 @@ int cmd_hist(char **tr, char* history[])
     if (tr[1] == NULL)
         for (i = 0; history[i] != NULL; i++)
             printf("\t* %2d) %s\n",i + 1, history[i]);
-    else if (strcmp(tr[1], "-c") == 0)
-        for (i = 0; history[i] != NULL; i++)
+    else if (strcmp(tr[1], "-c") == 0) {
+        for(i = 0; history[i] != NULL; i++)
             history[i] = NULL;
+    }
     else if ((n = strtol(tr[1], &ptr, 10)) < 0)
     {
         for (i = 0; i < -n; i++)
-                if (history[i] != NULL)
-                    printf("\t* %2d) %s\n",i + 1, history[i]);
+            if (history[i] != NULL)
+                printf("\t* %2d) %s\n",i + 1, history[i]);
     }
     else
-    {
         printf("hist: invalid option\n");
-    }
+
     return 1;
 }
 
@@ -185,16 +308,19 @@ int cmd_comando(char **tr, char *history[])
     {
         if (history[n] != NULL)
         {
-            cmd = history[n];
+            /** TODO [COMPROBAR SI ES LEGAL] */
+            //cmd = history[n];
+            cmd = strdup(history[n]);
+
             args = split_cmd(cmd);
             if (strcmp(args[0], "comando") == 0)
-                printf("comando: evitar loop\n");
+                // REVISAR
+                printf("comando: infinite loop warning\n");
             else
-                process(args, history);
+                process_cmd(args, history);
 
             free(cmd);
             free(args);
-
             loop(history);
         }
         else
@@ -215,7 +341,7 @@ int cmd_infosis()
 
     if(uname(&infosis)!=0)
     {
-        perror("uname doesn't return 0, so there is an error"); // revisar y cambiar esto, está pillao de internet -R
+        perror("infosis");
         exit(EXIT_FAILURE);
     }
 
@@ -237,20 +363,20 @@ int cmd_ayuda(char **tr)
     int i, pos = 0;
     int max_len = 100;
 
-    char txt[] ="autores [-l|-n]\t\tprints the names and logins of the program "                            // autores
+    char txt[] ="autores [-l|-n]\t\tprints the names and logins of the program "                                // autores
                 "authors.\n\t-l\t\tprints only the logins\n\t-n\t\tprints only the names\n%"
-                "pid [-p]\t\tprints the pid of the process executing the shell.\n\t"                        // pid
+                "pid [-p]\t\tprints the pid of the process executing the shell.\n\t"                            // pid
                 "-p\t\tprints the pid of the shell's parent process\n%"
-                "carpeta [DIRECT]\tprints the current working directory\n\t"                              // carpeta
+                "carpeta [DIRECT]\tprints the current working directory\n\t"                                    // carpeta
                 "DIRECT\t\tchange the current working directory to DIRECT\n%"
-                "fecha [-d|-h]\t\tprints the current date and time.\n\t-d\t\tprints the current "           // fecha
+                "fecha [-d|-h]\t\tprints the current date and time.\n\t-d\t\tprints the current "               // fecha
                 "date in the format dd/mm/yyyy\n\t-h\t\tprints the current time in the format hh:mm:ss\n%"
-                "hist [-c|-N]\t\tshows the history of commands executed by the shell.\n"                    // hist
+                "hist [-c|-N]\t\tshows the history of commands executed by the shell.\n"                        // hist
                 "\t-c\t\tclears the list\n\t-N\t\tprints the first N commands\n%"
-                "comando [N]\t\trepeats command number N\n%"                                                // comando
-                "infosis\t\t\tprints information on the machine running the shell.\n%"                      // infosis
+                "comando [N]\t\trepeats command number N\n%"                                                    // comando
+                "infosis\t\t\tprints information on the machine running the shell.\n%"                          // infosis
                 "ayuda [CMD]\t\tdisplays a list of available commands or a brief help on the usage of CMD if given.\n%"
-                "fin, salir, bye\t\tends the shell.\n";                                                     // exit
+                "fin, salir, bye\t\tends the shell.\n";                                                         // exit
 
     char *piece = strtok(txt, "%");
     char **info = malloc(sizeof(char*) * max_len);
@@ -266,7 +392,8 @@ int cmd_ayuda(char **tr)
             info = realloc(info, sizeof(char*) * max_len);
 
             if (!info) {
-                perror("Error: allocation error\n");
+                //printf("Error: allocation error\n");
+                perror("error (ayuda)");
                 exit(EXIT_FAILURE);
             }
         }
@@ -306,136 +433,4 @@ int cmd_exit()
  */
 {
     return 0;
-}
-
-/** MAIN FUNCTIONS */
-
-// Process the first word of the given array looking for a valid command
-int process(char **tr, char *history[])
-{
-    if (tr[0] != NULL)
-    {
-        if (strcmp(tr[0], "autores") == 0)
-            return cmd_authors(tr);
-        else if (strcmp(tr[0], "pid") == 0)
-            return cmd_pid(tr);
-        else if (strcmp(tr[0], "carpeta") == 0)
-            return cmd_carpeta(tr);
-        else if (strcmp(tr[0], "fecha") == 0)
-            return cmd_date(tr);
-        else if (strcmp(tr[0], "hist") == 0)
-            return cmd_hist(tr, history);
-        else if (strcmp(tr[0], "comando") == 0)
-            return cmd_comando(tr, history);
-        else if (strcmp(tr[0], "infosis") == 0)
-            return cmd_infosis();
-        else if (strcmp(tr[0], "ayuda") == 0)
-            return cmd_ayuda(tr);
-        else if (strcmp(tr[0], "fin") == 0 || strcmp(tr[0], "salir") == 0 ||
-                 strcmp(tr[0], "bye") == 0 || strcmp(tr[0], "exit") == 0)
-            return cmd_exit();
-        else
-        {
-            printf("%s: command not found\n", tr[0]);
-            return 1;
-        }
-    }
-    else
-    {
-        return 1;
-    }
-}
-
-// Split string into pieces
-char **split_cmd(char *cmd)
-{
-    int max_len = 50, pos = 0;
-    char *piece = strtok(cmd, DELIM);
-    char **tokens = malloc(sizeof(char*) * max_len);
-
-    if (!tokens) {
-        perror("Error: allocation error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    while (piece != NULL)
-    {
-        tokens[pos++] = piece;
-        piece = strtok(NULL, DELIM);
-
-        if (pos >= max_len)
-        {
-            max_len += max_len;
-            tokens = realloc(tokens, sizeof(char*) * max_len);
-
-            if (!tokens) {
-                perror("Error: allocation error\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-
-    tokens[pos] = NULL;
-    return tokens;
-}
-
-// Read command
-char *read_cmd()
-{
-    char *cmd = NULL;
-    size_t len = 0;
-
-    if (getline(&cmd, &len, stdin) == -1)
-    {
-        if (feof(stdin))              // No se muy bien qué hace esto,
-            exit(EXIT_SUCCESS);       // pero si nos preguntan estaría
-        else {                        // bien saberlo.    -R
-            perror("Error read_cmd");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    return cmd;
-}
-
-// Save command to history
-void save_cmd(char *cmd, char *history[])
-{
-    char* line = strtok(cmd,"\n");
-    int i;
-    for(i = 0; history[i] != NULL; i++);
-    //list[i] = strdup(cmd);
-    history[i] = strdup(line);
-
-}
-
-// Main loop
-void loop(char *history[])
-{
-    char *cmd;
-    char **args;
-    int status;
-
-    int i = 0;
-
-    do
-    {
-        printf("$ ");
-        cmd = read_cmd();
-        save_cmd(cmd, history);
-        args = split_cmd(cmd);
-        status = process(args, history);
-
-        free(cmd);
-        free(args);
-
-        i++;
-    } while (status);
-}
-int main()
-{
-    char *history[ARRAY];
-    loop(history);
-
-    return 1;
 }
