@@ -14,10 +14,9 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
-#include <ftw.h>
 
 #define DELIM " \t\n"
-#define ARRAY 4036
+#define ARRAY 4096
 
 /** FUNCTION DECLARATION */
 void loop(char *history[]);
@@ -43,6 +42,7 @@ int cmd_rm(char **tr);
 int main()
 {
     char *history[ARRAY];
+    history[0] = NULL;
     loop(history);
 
     return 1;
@@ -73,12 +73,20 @@ void save_cmd(char *cmd, char *history[])
 {
     int i;
     char* line = strtok(cmd,"\n");
-
-
     if (line != NULL) // Check if only input is Enter
     {
-        for (i = 0; history[i] != NULL; i++);
-        history[i] = strdup(line);
+        for (i = 0; (history[i] != NULL) && (i < ARRAY); i++);
+        if(i == ARRAY) {
+            for (i = 0; i < ARRAY - 1; i++) { history[i] = history[i+1]; }
+            i++;
+            //free(history[i]);
+            //history[i] = NULL;
+            history[i] = strdup(line);
+        }
+        else {
+            history[i] = strdup(line);
+            history[i+1] = NULL;
+        }
     }
 }
 
@@ -172,10 +180,7 @@ int process_cmd(char **tr, char *history[])
     return 1;
 }
 
-
-
 /** COMMANDS */
-
 int cmd_authors(char **tr)
 /*
  * Print the names and logins of the program authors
@@ -289,11 +294,13 @@ int cmd_hist(char **tr, char* history[])
      */
 
     if (tr[1] == NULL)
-        for (i = 0; history[i] != NULL; i++)
+        for (i = 0; (history[i] != NULL) && (i < ARRAY); i++)
             printf("%5d  %s\n", i + 1, history[i]);
     else if (strcmp(tr[1], "-c") == 0)
-        for (i = 0; history[i] != NULL; i++)
-            history[i] = NULL;
+        for (i = 0; (history[i] != NULL) && (i < ARRAY); i++) {
+            free(history[i]);
+            history[0] = NULL;
+        }
     else if ((n = strtol(tr[1], &ptr, 10)) < 0)
     {
         for (i = 0; i < -n; i++)
@@ -619,19 +626,10 @@ int cmd_rm(char **tr)
 {
     struct dirent *de;  // Pointer for directory entry
     DIR *dr = opendir(tr[1]);
-
     if (dr == NULL)  // opendir returns NULL if couldn't open directory
         perror("borrarrec:" );
-
     while ((de = readdir(dr)) != NULL)
         remove(de->d_name);
-
     closedir(dr);
-
     return 1;
 }*/
-
-
-
-
-
