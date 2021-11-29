@@ -61,12 +61,22 @@ int cmd_priority(char **tr)
     return 1;
 }
 
-int cmd_entorno(char **tr)
+int cmd_entorno(char **tr, char *envp[], char **environ)
 {
     if (tr[1] == NULL)
     {
+		aux_showEnv(envp, "main arg3");
+	}
+	else if (strcmp(tr[1], "-environ") == 0)
+	{
+		aux_showEnv(environ, "environ");
+	}
+	else
+	{
+		printf(COLOR_RED "entorno: invalid input" COLOR_RESET "\n");
+	}
 
-    }
+	return 1;
 }
 
 void aux_showEnv(char **env, char *env_name)

@@ -27,20 +27,22 @@
 #define ARRAY 4096
 #define BUFFERSIZE 1024
 
-int main()
+int main(int argc, char *argv[], char *envp[])
 {
+	extern char **environ;
+
     // Initialize the history array which is going to be used all along the program.
     char *history[ARRAY];
     tList memList;
 
     createEmptyList(&memList);
     history[0] = NULL;
-    loop(history, &memList);
+    loop(history, &memList, envp, environ);
 
     return 1;
 }
 
-void loop(char *history[], tList *memList)
+void loop(char *history[], tList *memList, char *envp[], char **environ)
 {
     char *cmd = NULL;
     char **args = NULL;
@@ -53,7 +55,7 @@ void loop(char *history[], tList *memList)
         cmd = read_cmd();
         save_cmd(cmd, history);
         args = split_cmd(cmd);
-        status = process_cmd(args, history, memList);
+        status = process_cmd(args, history, memList, envp, environ);
 
         free(cmd);
         free(args);
@@ -133,7 +135,7 @@ char **split_cmd(char *cmd)
     return tokens;
 }
 
-int process_cmd(char **tr, char *history[], tList *memList)
+int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char **environ)
 {
     if (tr[0] != NULL)
     {
@@ -148,7 +150,7 @@ int process_cmd(char **tr, char *history[], tList *memList)
         else if (strcmp(tr[0], "hist") == 0)
             return cmd_hist(tr, history);
         else if (strcmp(tr[0], "comando") == 0)
-            return cmd_comando(tr, history, memList);
+            return cmd_comando(tr, history, memList, envp, environ);
         else if (strcmp(tr[0], "infosis") == 0)
             return cmd_infosis();
         else if (strcmp(tr[0], "ayuda") == 0)
@@ -186,6 +188,8 @@ int process_cmd(char **tr, char *history[], tList *memList)
             return cmd_es(tr);
         else if (strcmp(tr[0], "priority") == 0)
             return cmd_priority(tr);
+		else if (strcmp(tr[0], "entorno") == 0)
+			return cmd_entorno(tr, envp, environ);
         else
             printf(COLOR_RED "%s: command not found" COLOR_RESET "\n", tr[0]);
     }

@@ -134,7 +134,7 @@ int cmd_hist(char **tr, char* history[])
     return 1;
 }
 
-int cmd_comando(char **tr, char *history[], tList *memList)
+int cmd_comando(char **tr, char *history[], tList *memList, char *envp[], char **environ)
 {
     char *ptr = NULL;
     char *cmd = NULL;
@@ -161,7 +161,7 @@ int cmd_comando(char **tr, char *history[], tList *memList)
             if (strcmp(args[0], "comando") == 0)
                 printf(COLOR_RED "comando: can't call itself to avoid infinite loop hazards" COLOR_RESET "\n");
             else
-                process_cmd(args, history, memList);
+                process_cmd(args, history, memList, envp, environ);
 
             free(cmd);
             free(args);

@@ -45,7 +45,7 @@ int cmd_hist(char **tr, char* history[]);
  *  -N  prints the first N commands.
  */
 
-int cmd_comando(char **tr, char *history[], tList *memList);
+int cmd_comando(char **tr, char *history[], tList *memList, char *envp[], char **environ);
 /*
  * Repeats command number N.
  */

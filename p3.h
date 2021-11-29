@@ -17,4 +17,12 @@ int cmd_priority(char **tr);
  * to value.
  */
 
+int cmd_entorno(char **tr, char *envp[], char **environ);
+void aux_showEnv(char **env, char *env_name);
+/*
+ * Show the environment of the shell process. Access will be through the third argument of main.
+ * 	-environ		Access will be through the external variable environ.
+ * 	   -addr		Show the value of environ and the third argument of main.
+ */
+
 #endif

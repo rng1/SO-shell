@@ -3,7 +3,7 @@
 
 #include "mem_list.h"
 
-void loop(char *history[], tList *memList);
+void loop(char *history[], tList *memList, char *envp[], char **environ);
 /*
  * Main loop.
  */
@@ -23,7 +23,7 @@ char **split_cmd(char *cmd);
  * Split string into pieces.
  */
 
-int process_cmd(char **tr, char *history[], tList *memList);
+int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char **environ);
 /*
  * Process the first word of the given array looking for a valid command.
  */
