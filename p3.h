@@ -25,4 +25,7 @@ void aux_showEnv(char **env, char *env_name);
  * 	   -addr		Show the value of environ and the third argument of main.
  */
 
+int cmd_mostrarVar(char **tr, char *envp[], char **environ);
+void aux_mostrarVar(char **env, char *env_name, char *var_name);
+
 #endif

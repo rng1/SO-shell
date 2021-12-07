@@ -61,22 +61,27 @@ int cmd_priority(char **tr)
     return 1;
 }
 
+int cmd_rederr(char **tr)
+{
+    // TODO(roi) buscar info
+}
+
 int cmd_entorno(char **tr, char *envp[], char **environ)
 {
     if (tr[1] == NULL)
     {
 		aux_showEnv(envp, "main arg3");
-	}
-	else if (strcmp(tr[1], "-environ") == 0)
-	{
-		aux_showEnv(environ, "environ");
-	}
-	else
-	{
-		printf(COLOR_RED "entorno: invalid input" COLOR_RESET "\n");
-	}
+    }
+    else if (strcmp(tr[1], "-environ") == 0)
+    {
+    aux_showEnv(environ, "environ");
+    }
+    else
+    {
+    printf(COLOR_RED "entorno: invalid input" COLOR_RESET "\n");
+    }
 
-	return 1;
+    return 1;
 }
 
 void aux_showEnv(char **env, char *env_name)
@@ -88,4 +93,41 @@ void aux_showEnv(char **env, char *env_name)
         printf("%p->%s[%d]=(%p) %s\n", &env[i], env_name, i, env[i], env[i]);
         ++i;
     }
+}
+
+int cmd_mostrarVar(char **tr, char *envp[], char **environ)
+{
+    if (tr[1] == NULL)
+    {
+        aux_showEnv(envp, "main arg3");
+    }
+    else
+    {
+        aux_mostrarVar(envp, "main arg3", tr[1]);
+        aux_mostrarVar(environ, "environ", tr[1]);
+        //aux_mostrarVar(envp, tr[1]);
+    }
+
+    return 1;
+}
+
+void aux_mostrarVar(char **env, char *env_name, char *var_name)
+{
+    int i = 0;
+    char *token;
+    char *aux;
+    char *var;
+
+    //while (env[i] != NULL)
+    //{
+        aux = var = env[i];
+        printf("%s\n", aux);
+        token = strtok(aux,"=");
+        printf("t %s  v %s  e %s\n", token, aux, var);
+        if (strcmp(var_name, token) == 0)
+            token = strtok(NULL, "=");
+            printf("%s -> %s\n", env_name, aux);
+
+    //    ++i;
+    //}
 }
