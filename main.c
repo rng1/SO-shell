@@ -29,7 +29,7 @@
 
 int main(int argc, char *argv[], char *envp[])
 {
-	extern char **environ;
+    extern char **environ;
 
     // Initialize the history array which is going to be used all along the program.
     char *history[ARRAY];
@@ -188,8 +188,14 @@ int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char *
             return cmd_es(tr);
         else if (strcmp(tr[0], "priority") == 0)
             return cmd_priority(tr);
-		else if (strcmp(tr[0], "entorno") == 0)
-			return cmd_entorno(tr, envp, environ);
+        else if (strcmp(tr[0], "entorno") == 0)
+            return cmd_entorno(tr, envp, environ);
+        else if (strcmp(tr[0], "mostrarvar") == 0)
+            return cmd_mostrarvar(tr, envp, environ);
+        else if (strcmp(tr[0], "cambiarvar") == 0)
+            return cmd_cambiarvar(tr, envp, environ);
+        else if (strcmp(tr[0], "uid") == 0)
+            return cmd_uid(tr);
         else
             printf(COLOR_RED "%s: command not found" COLOR_RESET "\n", tr[0]);
     }

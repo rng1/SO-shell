@@ -9,13 +9,6 @@
 
 #include "p3.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/resource.h>
-#include <stdlib.h>
-
 #define COLOR_RED   "\x1b[31m"
 #define COLOR_RESET "\x1b[0m"
 
@@ -61,24 +54,24 @@ int cmd_priority(char **tr)
     return 1;
 }
 
-int cmd_rederr(char **tr)
+/*int cmd_rederr(char **tr)
 {
     // TODO(roi) buscar info
-}
+}*/
 
 int cmd_entorno(char **tr, char *envp[], char **environ)
 {
     if (tr[1] == NULL)
     {
-		aux_showEnv(envp, "main arg3");
+        aux_showEnv(envp, "main arg3");
     }
     else if (strcmp(tr[1], "-environ") == 0)
     {
-    aux_showEnv(environ, "environ");
+        aux_showEnv(environ, "environ");
     }
     else
     {
-    printf(COLOR_RED "entorno: invalid input" COLOR_RESET "\n");
+        printf(COLOR_RED "entorno: invalid input" COLOR_RESET "\n");
     }
 
     return 1;
@@ -95,39 +88,181 @@ void aux_showEnv(char **env, char *env_name)
     }
 }
 
-int cmd_mostrarVar(char **tr, char *envp[], char **environ)
+int cmd_mostrarvar(char **tr, char *envp[], char **environ)
 {
+    int pos;
+
     if (tr[1] == NULL)
     {
         aux_showEnv(envp, "main arg3");
     }
     else
     {
-        aux_mostrarVar(envp, "main arg3", tr[1]);
-        aux_mostrarVar(environ, "environ", tr[1]);
-        //aux_mostrarVar(envp, tr[1]);
+        // If the first variable is found, it doesn't need further checking.
+        if ((pos = aux_buscarvar(tr[1], envp)) == -1)
+        {
+            printf(COLOR_RED "mostrarvar: %s" COLOR_RESET "\n", strerror(errno));
+        }
+        else
+        {
+            printf("main arg3 %s=(%p) @%p\n", envp[pos], envp[pos], &envp[pos]);
+            // environ
+            pos = aux_buscarvar(tr[1], environ);
+            printf("environ %s=(%p) @%p\n", environ[pos], environ[pos], &environ[pos]);
+            // getenv()
+            printf("getenv %s(%p)\n", getenv(tr[1]), getenv(tr[1]));
+        }
     }
 
     return 1;
 }
 
-void aux_mostrarVar(char **env, char *env_name, char *var_name)
+int aux_buscarvar(char *var_name, char *env[])
 {
-    int i = 0;
-    char *token;
+    int pos = 0;
+    char aux[4092];
+
+    strcpy(aux, var_name);
+    strcat(aux, "=");
+
+    while (env[pos] != NULL)
+    {
+        if (strncmp(env[pos], aux, strlen(aux)) == 0)
+            return pos;
+        else
+            ++pos;
+    }
+
+    errno = ENOENT;
+    return -1;
+}
+
+int cmd_cambiarvar(char **tr, char *envp[], char **environ)
+{
+    int aux = 0;
+
+    if (tr[1] == NULL || tr[2] == NULL || tr[3] == NULL)
+    {
+        printf(COLOR_RED "cambiarvar: invalid option" COLOR_RESET "\n");
+    }
+    else
+    {
+        if (strcmp(tr[1], "-a") == 0)
+        {
+            aux = aux_cambiarvar(tr[2], tr[3], envp);
+        }
+        else if (strcmp(tr[1], "-e") == 0)
+        {
+            aux = aux_cambiarvar(tr[2], tr[3], environ);
+        }
+        else if (strcmp(tr[1], "-p") == 0)
+        {
+            printf("putenv\n");
+        }
+
+        if (aux == -1)
+        {
+            printf("cambiarvar:");
+        }
+        else
+        {
+            printf(COLOR_RED "cambiarvar: invalid option" COLOR_RESET "\n");
+        }
+
+    }
+
+    return 1;
+}
+
+int aux_cambiarvar(char *var_name, char *valor, char *env[])
+{
+    int pos;
     char *aux;
-    char *var;
 
-    //while (env[i] != NULL)
-    //{
-        aux = var = env[i];
-        printf("%s\n", aux);
-        token = strtok(aux,"=");
-        printf("t %s  v %s  e %s\n", token, aux, var);
-        if (strcmp(var_name, token) == 0)
-            token = strtok(NULL, "=");
-            printf("%s -> %s\n", env_name, aux);
+    if ((pos = aux_buscarvar(var_name, env)) == -1)
+        return -1;
 
-    //    ++i;
-    //}
+    if ((aux = (char *)malloc(strlen(var_name) + strlen(valor) + 2)) == NULL)
+        return -1;
+
+    strcpy(aux, var_name);
+    strcat(aux, "=");
+    strcat(aux, valor);
+    env[pos] = aux;
+
+    return pos;
+}
+
+int cmd_uid(char **tr)
+{
+    uid_t uid;
+
+    if (tr[1] == NULL || strcmp(tr[1], "-get") == 0)
+    {
+        aux_uid_get();
+    }
+    else if (strcmp(tr[1], "-set") == 0)
+    {
+        if (tr[2] == NULL)
+            aux_uid_get();
+        else if (strcmp(tr[2], "-l") == 0)
+            aux_uid_set(tr[3]);
+        else
+        {
+            uid = (uid_t) strtol(tr[3], NULL, 10);
+            setuid(uid);
+        }
+    }
+    else
+        printf(COLOR_RED "uid: invalid option" COLOR_RESET "\n");
+
+    return 1;
+}
+
+void aux_uid_get()
+{
+    uid_t real = getuid();
+    uid_t effective = geteuid();
+
+    printf("real user ID: %d (%s)\n", real, aux_username(real));
+    printf("effective user ID: %d (%s)\n", effective, aux_username(effective));
+}
+
+void aux_uid_set(char *login)
+{
+    uid_t uid;
+
+    if ((uid = aux_useruid(login)) == (uid_t) -1)
+    {
+        printf(COLOR_RED "uid set: invalid credentials" COLOR_RESET "\n");
+        return;
+    }
+
+    if (setuid(uid) == 1) // TODO(roi) comprobar si es 1 o .1
+        printf(COLOR_RED "uid set: %s" COLOR_RESET "\n", strerror(errno));
+}
+
+char *aux_username(uid_t uid)
+{
+    struct passwd *p;
+
+    if ((p = getpwuid(uid)) == NULL)
+        return " ??????";
+
+    return p->pw_name;
+}
+
+uid_t aux_useruid(char *login)
+{
+    struct passwd *p;
+
+    if ((p = getpwnam(login)) == NULL)
+        return (uid_t) -1;
+
+    return p->pw_uid;
+}
+
+int cmd_fork(char **tr)
+{
+
 }

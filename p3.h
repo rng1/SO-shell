@@ -10,6 +10,14 @@
 #ifndef SHELL_P3_H
 #define SHELL_P3_H
 
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/resource.h>
+#include <stdlib.h>
+#include <pwd.h>
+
 int cmd_priority(char **tr);
 /*
  * If no value is given, show the priority of process pid. If neither pid nor value is given, the priority of the
@@ -25,7 +33,16 @@ void aux_showEnv(char **env, char *env_name);
  * 	   -addr		Show the value of environ and the third argument of main.
  */
 
-int cmd_mostrarVar(char **tr, char *envp[], char **environ);
-void aux_mostrarVar(char **env, char *env_name, char *var_name);
+int cmd_mostrarvar(char **tr, char *envp[], char **environ);
+int aux_buscarvar(char *var_name, char *env[]);
+
+int cmd_cambiarvar(char **tr, char *envp[], char **environ);
+int aux_cambiarvar(char *var_name, char *valor, char *env[]);
+
+int cmd_uid(char **tr);
+void aux_uid_get();
+void aux_uid_set();
+char *aux_username(uid_t uid);
+uid_t aux_useruid(char *login);
 
 #endif
