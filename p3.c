@@ -7,10 +7,20 @@
  *     DATE: 10 / 12 / 21
  */
 
-#include "p3.h"
+/**
+ * TODO
+ *      @cmd_priority optimizar
+ *      @cmd_rederr pendiente
+ *      @cmd_cambiarvar putenv
+ *      @aux_uid_set comprobar si setuid(uid) == 1 o .1
+ *      @cmd_ejec hacer efectiva la finalización de la shell
+ *      @cmd_back contador de trabajos ejecutados en segundo plano
+ *      @cmd_*as terminar
+ */
 
-#define COLOR_RED   "\x1b[31m"
-#define COLOR_RESET "\x1b[0m"
+#include "p3.h"
+#include "p0.h"
+#include "color.h"
 
 int cmd_priority(char **tr)
 {
@@ -22,8 +32,13 @@ int cmd_priority(char **tr)
     {
         if ((pid = getpid()) < 0)
             printf(COLOR_RED "priority: getpid: %s" COLOR_RESET "\n", strerror(errno));
+        else if ((ret = getpriority(which, pid)) == -1)
+            printf(COLOR_RED "priority: getpriority: %s" COLOR_RESET "\n", strerror(errno));
         else
-            printf("%d\n", pid);
+        {
+            printf(" PID\tNI\n");
+            printf("%4d\t%2d\n", pid, ret);
+        }
     }
     else if (tr[2] == NULL)
     {
@@ -56,7 +71,6 @@ int cmd_priority(char **tr)
 
 /*int cmd_rederr(char **tr)
 {
-    // TODO(roi) buscar info
 }*/
 
 int cmd_entorno(char **tr, char *envp[], char **environ)
@@ -238,7 +252,7 @@ void aux_uid_set(char *login)
         return;
     }
 
-    if (setuid(uid) == 1) // TODO(roi) comprobar si es 1 o .1
+    if (setuid(uid) == 1)
         printf(COLOR_RED "uid set: %s" COLOR_RESET "\n", strerror(errno));
 }
 
@@ -262,7 +276,225 @@ uid_t aux_useruid(char *login)
     return p->pw_uid;
 }
 
-int cmd_fork(char **tr)
+int cmd_fork()
 {
+    pid_t pid, wpid;
 
+    if ((pid = fork()) == 0)
+    {
+        if ((wpid = getpid()) < 0)
+            printf(COLOR_RED "fork: getpid: %s" COLOR_RESET "\n", strerror(errno));
+        else
+            printf("forking process %d\n", wpid);
+    }
+    else if (pid < 0)
+        printf(COLOR_RED "fork: %s" COLOR_RESET "\n", strerror(errno));
+    else
+        waitpid(pid, NULL, 0);
+
+    return 1;
+}
+
+int cmd_ejec(char **tr)
+{
+    pid_t pid;
+    int estado;
+
+    if ((pid = fork()) == 0)
+    {
+        if (execvp(tr[1], tr + 1) == -1)
+            printf(COLOR_RED "ejec: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "ejec: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        do
+            waitpid(pid, &estado, WUNTRACED);
+        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
+
+        exit(0);
+    }
+
+    return 1;
+}
+
+int cmd_ejecpri(char **tr)
+{
+    pid_t pid;
+    int estado, prio;
+    int which = PRIO_PROCESS;
+
+    if (tr[1] == NULL || tr[2] == NULL)
+    {
+        printf(COLOR_RED "fgpri: missing arguments" COLOR_RESET "\n");
+    }
+    else if ((prio = (int) strtol(tr[1], NULL, 10)) == 0)
+    {
+        printf(COLOR_RED "fgpri: invalid priority" COLOR_RESET "\n");
+    }
+    else if ((pid = fork()) == 0)
+    {
+        if (setpriority(which, pid, prio))
+            printf(COLOR_RED "ejecpri: setpriority: %s" COLOR_RESET "\n", strerror(errno));
+        else if (execvp(tr[2], tr + 2) == -1)
+            printf(COLOR_RED "ejecpri: execvp: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "ejecpri: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        do
+            waitpid(pid, &estado, WUNTRACED);
+        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
+
+        exit(0);
+    }
+
+    return 1;
+}
+
+int cmd_ejecas(char **tr)
+{
+    printf("ejecas\n");
+
+    return 1;
+}
+
+int cmd_fg(char **tr)
+{
+    pid_t pid;
+    int estado;
+
+    if ((pid = fork()) == 0)
+    {
+        if (execvp(tr[1], tr + 1) == -1)
+            printf(COLOR_RED "fg: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "fg: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        do
+            waitpid(pid, &estado, WUNTRACED);
+        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
+    }
+
+    return 1;
+}
+
+int cmd_fgpri(char **tr)
+{
+    pid_t pid;
+    int estado, prio;
+    int which = PRIO_PROCESS;
+
+    if (tr[1] == NULL || tr[2] == NULL)
+    {
+        printf(COLOR_RED "fgpri: missing arguments" COLOR_RESET "\n");
+    }
+    else if ((prio = (int) strtol(tr[1], NULL, 10)) == 0)
+    {
+        printf(COLOR_RED "fgpri: invalid priority" COLOR_RESET "\n");
+    }
+    else if ((pid = fork()) == 0)
+    {
+        if (setpriority(which, pid, prio))
+            printf(COLOR_RED "fgpri: setpriority: %s" COLOR_RESET "\n", strerror(errno));
+        else if (execvp(tr[2], tr + 2) == -1)
+            printf(COLOR_RED "fgpri: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "fgpri: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        do
+            waitpid(pid, &estado, WUNTRACED);
+        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
+    }
+
+    return 1;
+}
+
+int cmd_fgas(char **tr)
+{
+    printf("fgas\n");
+
+    return 1;
+}
+
+int cmd_back(char **tr)
+{
+    pid_t pid;
+
+    if ((pid = fork()) == 0)
+    {
+        // Placing the child in a new process group to keep it away from foreground processes.
+        setpgid(0, 0);
+        if (execvp(tr[1], tr + 1) == -1)
+            printf(COLOR_RED "back: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "back: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        printf("child: %d\n", pid);
+    }
+
+    return 1;
+}
+
+int cmd_backpri(char **tr)
+{
+    pid_t pid;
+    int prio;
+    int which = PRIO_PROCESS;
+
+    if (tr[1] == NULL || tr[2] == NULL)
+    {
+        printf(COLOR_RED "backpri: missing arguments" COLOR_RESET "\n");
+    }
+    else if ((prio = (int) strtol(tr[1], NULL, 10)) == 0)
+    {
+        printf(COLOR_RED "backpri: invalid priority" COLOR_RESET "\n");
+    }
+    else if ((pid = fork()) == 0)
+    {
+        setpgid(0, 0);
+        if (setpriority(which, pid, prio))
+            printf(COLOR_RED "backpri: setpriority: %s" COLOR_RESET "\n", strerror(errno));
+        else if (execvp(tr[2], tr + 2) == -1)
+            printf(COLOR_RED "backpri: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "backpri: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        printf("child: %d\n", pid);
+    }
+
+    return 1;
+}
+
+int cmd_bgas(char **tr)
+{
+    printf("bgas\n");
+
+    return 1;
 }

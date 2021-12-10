@@ -9,20 +9,7 @@
 
 #include "p0.h"
 #include "main.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
-#include <stdlib.h>
-#include <sys/utsname.h>
-
-#define COLOR_RED   "\x1b[31m"
-#define COLOR_RESET "\x1b[0m"
-
-#define BUFFERSIZE 1024
-#define ARRAY 4096
+#include "color.h"
 
 int cmd_autores(char **tr)
 {
@@ -134,7 +121,7 @@ int cmd_hist(char **tr, char* history[])
     return 1;
 }
 
-int cmd_comando(char **tr, char *history[], tList *memList, char *envp[], char **environ)
+int cmd_comando(char **tr, char *history[], tMemList *memList, char *envp[], char **environ)
 {
     char *ptr = NULL;
     char *cmd = NULL;
@@ -519,7 +506,7 @@ int cmd_ayuda(char **tr)
     return 1;
 }
 
-int cmd_exit(char* history[], tList *memList)
+int cmd_exit(char* history[], tMemList *memList)
 {
     int i;
     // Iterate through the history freeing all of its occupied slots when finishing the shell.

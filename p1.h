@@ -12,6 +12,21 @@
 
 #include <stdbool.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <stdbool.h>
+#include <libgen.h>
+#include <pwd.h>
+#include <grp.h>
+#include <time.h>
+
+#define ARRAY 4096
+#define BUFFERSIZE 1024
 
 int cmd_crear(char **tr);
 int aux_createFile(char *f);

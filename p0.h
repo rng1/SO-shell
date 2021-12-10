@@ -12,6 +12,17 @@
 
 #include "mem_list.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include <stdlib.h>
+#include <sys/utsname.h>
+
+#define BUFFERSIZE 1024
+#define ARRAY 4096
+
 int cmd_autores(char **tr);
 /*
  * Print the names and logins of the program authors.

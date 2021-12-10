@@ -10,10 +10,26 @@
 #ifndef SHELL_P2_H
 #define SHELL_P2_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+
+#define DELIM " \t\n"
+#define ARRAY 4096
+#define BUFFERSIZE 1024
+
 #include "mem_list.h"
 
-int cmd_malloc(char **tr, tList *memList);
-void aux_liberarMalloc(size_t tam, tList *memList);
+int cmd_malloc(char **tr, tMemList *memList);
+void aux_liberarMalloc(size_t tam, tMemList *memList);
 /*
  * Allocate tam bytes and show the memory address returned by the function, keeping this information in a list. If no
  * size is specified, show the list of addresses allocated with the malloc command.
@@ -23,19 +39,19 @@ void aux_liberarMalloc(size_t tam, tList *memList);
  *                          only one of them in any order.
  */
 
-int cmd_mmap(char **tr, tList *memList);
-void *aux_mapFile(char *fname, int prot, tList *memList);
-void aux_liberarMap(char *fname, tList *memList);
+int cmd_mmap(char **tr, tMemList *memList);
+void *aux_mapFile(char *fname, int prot, tMemList *memList);
+void aux_liberarMap(char *fname, tMemList *memList);
 /*
  * Map in memory the file fich and show the mem address where the file has been mapped.
  *  -free       Unmap and close the file fich and remove the address where it was mapped from the list.
  *   perm       Mapping permissions.
  */
 
-int cmd_shared(char **tr, tList *memList);
-void *aux_createShared(key_t key, size_t tam, tList *memList);
+int cmd_shared(char **tr, tMemList *memList);
+void *aux_createShared(key_t key, size_t tam, tMemList *memList);
 int aux_sharedDelKey(key_t key);
-void aux_liberarShared(key_t key, tList *memList);
+void aux_liberarShared(key_t key, tMemList *memList);
 /*
  * Get shared memory of key cl, map it in the process address space, and show the mem address where the shared memory
  * has been mapped.
@@ -45,7 +61,7 @@ void aux_liberarShared(key_t key, tList *memList);
  *  -delkey     Remove the shared memory region of key cl. Nothing gets unmapped.
  */
 
-int cmd_dealloc(char **tr, tList *memList);
+int cmd_dealloc(char **tr, tMemList *memList);
 /*
  * Deallocate one of the memory blocks allocated with the command malloc, mmap, or shared, and remove it from the list.
  * -malloc size     Same as malloc -free size.
@@ -54,7 +70,7 @@ int cmd_dealloc(char **tr, tList *memList);
  *         addr     Deallocate addr and remove it from the list.
  */
 
-int cmd_memoria(char **tr, tList *memList);
+int cmd_memoria(char **tr, tMemList *memList);
 void aux_dopmap();
 /*
  * Show addresses inside the process memory space. If no arguments are given, is equivalent to -all.
@@ -89,12 +105,12 @@ int aux_es_write(char **tr);
  * Read or write cont bytes from file fich into mem address addr.
  */
 
-void aux_addMemList(void *ptr, size_t tam, char *func, char *fname, int fildes, key_t key, tList *memList);
+void aux_addMemList(void *ptr, size_t tam, char *func, char *fname, int fildes, key_t key, tMemList *memList);
 /*
  * Add items to the memory list.
  */
 
-void aux_memListPrint(char *func, tList *memList);
+void aux_memListPrint(char *func, tMemList *memList);
 /*
  * Print the memory list according to some parameters.
  */

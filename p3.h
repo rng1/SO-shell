@@ -17,6 +17,7 @@
 #include <sys/resource.h>
 #include <stdlib.h>
 #include <pwd.h>
+#include <sys/wait.h>
 
 int cmd_priority(char **tr);
 /*
@@ -41,8 +42,34 @@ int aux_cambiarvar(char *var_name, char *valor, char *env[]);
 
 int cmd_uid(char **tr);
 void aux_uid_get();
-void aux_uid_set();
+void aux_uid_set(char *login);
 char *aux_username(uid_t uid);
 uid_t aux_useruid(char *login);
+
+int cmd_fork();
+/*
+ * Create a child process and wait for it to end.
+ */
+
+int cmd_ejec(char **tr);
+/*
+ * Execute, replacing the shell, the desired program prog with arguments arg1, arg2, ...
+ */
+
+int cmd_ejecpri(char **tr);
+
+int cmd_ejecas(char **tr);
+
+int cmd_fg(char **tr);
+
+int cmd_fgpri(char **tr);
+
+int cmd_fgas(char **tr);
+
+int cmd_back(char **tr);
+
+int cmd_backpri(char **tr);
+
+int cmd_bgas(char **tr);
 
 #endif

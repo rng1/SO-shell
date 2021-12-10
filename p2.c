@@ -7,44 +7,19 @@
  *     DATE: 10 / 12 / 21
  */
 
+/**
+ * TODO
+ *      @cmd_volcarmem revisar
+ */
+
 #include "p0.h"
 #include "p2.h"
 #include "mem_list.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/shm.h>
-#include <sys/wait.h>
-
-#define COLOR_RED     "\x1b[31m"
-#define COLOR_GREEN   "\x1b[32m"
-#define COLOR_BLUE    "\x1b[34m"
-#define COLOR_RESET   "\x1b[0m"
-
-#define DELIM " \t\n"
-#define ARRAY 4096
-#define BUFFERSIZE 1024
+#include "color.h"
 
 int global_var1 = 5, global_var2 = 6, global_var3 = 7;
 
-/** FUNCTION DECLARATION
-void *mapFile(char *fname, int prot, tList *memList);
-void liberarMap(char *fname, tList *memList);
-void liberarMalloc(size_t tam, tList *memList);
-void liberarShared(key_t key, tList *memList);
-int sharedDelKey(key_t key);
-void *createShared(key_t key, size_t tam, tList *memList);
-void recursiva(long n);
-void dopmap();*/
-
-int cmd_malloc(char **tr, tList *memList)
+int cmd_malloc(char **tr, tMemList *memList)
 {
     void *ptr;
     long inputSize;
@@ -88,10 +63,10 @@ int cmd_malloc(char **tr, tList *memList)
     return 1;
 }
 
-void aux_liberarMalloc(size_t tam, tList *memList)
+void aux_liberarMalloc(size_t tam, tMemList *memList)
 {
     tPosL pos;
-    tItemL aux;
+    tMemItemL aux;
 
     if ((pos = findTam(tam, *memList)) == NULL)
         aux_memListPrint("malloc", memList);
@@ -105,7 +80,7 @@ void aux_liberarMalloc(size_t tam, tList *memList)
     }
 }
 
-int cmd_mmap(char **tr, tList *memList)
+int cmd_mmap(char **tr, tMemList *memList)
 {
     int prot = PROT_NONE;
     int i;
@@ -153,7 +128,7 @@ int cmd_mmap(char **tr, tList *memList)
     return 1;
 }
 
-void *aux_mapFile(char *fname, int prot, tList *memList)
+void *aux_mapFile(char *fname, int prot, tMemList *memList)
 {
     int fildes, modo = O_RDONLY;
     struct stat fs;
@@ -181,10 +156,10 @@ void *aux_mapFile(char *fname, int prot, tList *memList)
     return NULL;
 }
 
-void aux_liberarMap(char *fname, tList *memList)
+void aux_liberarMap(char *fname, tMemList *memList)
 {
     tPosL pos;
-    tItemL aux;
+    tMemItemL aux;
 
     if((pos = findName(fname, *memList)) == NULL)
         aux_memListPrint("mmap", memList);
@@ -200,7 +175,7 @@ void aux_liberarMap(char *fname, tList *memList)
     }
 }
 
-int cmd_shared(char **tr, tList *memList)
+int cmd_shared(char **tr, tMemList *memList)
 {
     key_t key;
     size_t tam = 0;
@@ -261,11 +236,11 @@ int cmd_shared(char **tr, tList *memList)
     return 1;
 }
 
-int cmd_dealloc(char **tr, tList *memList)
+int cmd_dealloc(char **tr, tMemList *memList)
 {
     void *memAddr;
     tPosL pos;
-    tItemL aux;
+    tMemItemL aux;
     size_t tam;
 
     if (tr[1] == NULL)
@@ -317,7 +292,7 @@ int cmd_dealloc(char **tr, tList *memList)
     return 1;
 }
 
-void *aux_createShared(key_t key, size_t tam, tList *memList)
+void *aux_createShared(key_t key, size_t tam, tMemList *memList)
 {
     int id, flags = 0777;
     void *sh_mem;
@@ -370,10 +345,10 @@ int aux_sharedDelKey(key_t key)
     return 1;
 }
 
-void aux_liberarShared(key_t key, tList *memList)
+void aux_liberarShared(key_t key, tMemList *memList)
 {
     tPosL pos;
-    tItemL aux;
+    tMemItemL aux;
 
     if ((pos = findKey(key, *memList)) == NULL)
         aux_memListPrint("shared", memList);
@@ -389,7 +364,7 @@ void aux_liberarShared(key_t key, tList *memList)
     }
 }
 
-int cmd_memoria(char **tr, tList *memList)
+int cmd_memoria(char **tr, tMemList *memList)
 {
     int local_1 = 0, local_2 = 2, local_3 = 5054324;
     static int st_var1 = 1, st_var2 = 3, st_var3 = 5054325;
@@ -460,8 +435,9 @@ int cmd_volcarmem(char **tr)
 void aux_volcarmem(void *addr, long len)
 {
     int i, j;
-    char buff_char[256] = {};
-    char buff_hex[512] = {};
+    char buff_char[256];
+    char buff_hex[512];
+    char aux[4];
     char *pc = (char*) addr;
 
     if (len <= 0)
@@ -481,18 +457,22 @@ void aux_volcarmem(void *addr, long len)
                 printf("\n%s\n", buff_hex);
             }
 
-            sprintf(buff_hex, "");
-            sprintf(buff_char, "");
+            strcpy(buff_hex, "");
+            strcpy(buff_char, "");
         }
 
         if (i == len) break;
 
-        sprintf(buff_hex, "%s %02x", buff_hex, pc[i]);
+        sprintf(aux, "%02x", pc[i]);
+        strcat(buff_hex, " ");
+        strcat(buff_hex, aux);
 
         if ((pc[i] < 0x20) || (pc[i] > 0x7e)) {
-            sprintf(buff_char, "%s ", buff_char);
+            strcat(buff_char, " ");
         } else {
-            sprintf(buff_char, "%s%c", buff_char, pc[i]);
+            sprintf(aux, "%2c", pc[i]);
+            strcat(buff_hex, " ");
+            strcat(buff_hex, aux);
         }
     }
 
@@ -655,10 +635,10 @@ int aux_es_read(char **tr)
     return 1;
 }
 
-void aux_memListPrint(char *func, tList *memList)
+void aux_memListPrint(char *func, tMemList *memList)
 {
     tPosL pos;
-    tItemL aux;
+    tMemItemL aux;
 
     if (isEmptyList(*memList) == true)
         printf(COLOR_RED "aux_memListPrint: empty list" COLOR_RESET "\n");
@@ -688,9 +668,9 @@ void aux_memListPrint(char *func, tList *memList)
     }
 }
 
-void aux_addMemList(void *ptr, size_t tam, char *func, char *fname, int fildes, key_t key, tList *memList)
+void aux_addMemList(void *ptr, size_t tam, char *func, char *fname, int fildes, key_t key, tMemList *memList)
 {
-    tItemL item;
+    tMemItemL item;
 
     sprintf(item.type, "%s", func);
     item.memaddr = ptr;

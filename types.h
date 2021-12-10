@@ -12,6 +12,8 @@
 
 #include <sys/types.h>
 
+// mem list
+
 typedef struct tAdditionalInfo
 {
     char name[256];
@@ -19,13 +21,26 @@ typedef struct tAdditionalInfo
     key_t key;
 } tAdditionalInfo;
 
-typedef struct tItemL
+typedef struct tMemItemL
 {
     void *memaddr;
     size_t size;
     time_t time;
     char type[6];
     tAdditionalInfo info;
-} tItemL;
+} tMemItemL;
+
+// process list
+
+typedef struct tProcItemL
+{
+    pid_t pid;
+    int prio;
+    char *user;
+    char **args;
+    // time it started
+    // process state
+    // value or signal
+} tProcItemL;
 
 #endif

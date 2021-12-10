@@ -8,27 +8,7 @@
  */
 
 #include "p1.h"
-
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <stdbool.h>
-#include <libgen.h>
-#include <pwd.h>
-#include <grp.h>
-#include <time.h>
-
-#define COLOR_RED   "\x1b[31m"
-#define COLOR_GREEN   "\x1b[32m"
-#define COLOR_BLUE    "\x1b[34m"
-#define COLOR_RESET "\x1b[0m"
-
-#define ARRAY 4096
-#define BUFFERSIZE 1024
+#include "color.h"
 
 int cmd_crear(char **tr)
 {

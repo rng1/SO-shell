@@ -196,6 +196,26 @@ int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char *
             return cmd_cambiarvar(tr, envp, environ);
         else if (strcmp(tr[0], "uid") == 0)
             return cmd_uid(tr);
+        else if (strcmp(tr[0], "fork") == 0)
+            return cmd_fork();
+        else if (strcmp(tr[0], "ejec") == 0)
+            return cmd_ejec(tr);
+        else if (strcmp(tr[0], "ejecpri") == 0)
+            return cmd_ejecpri(tr);
+        else if (strcmp(tr[0], "ejecas") == 0)
+            return cmd_ejecas(tr);
+        else if (strcmp(tr[0], "fg") == 0)
+            return cmd_fg(tr);
+        else if (strcmp(tr[0], "fgpri") == 0)
+            return cmd_fgpri(tr);
+        else if (strcmp(tr[0], "fgas") == 0)
+            return cmd_fgas(tr);
+        else if (strcmp(tr[0], "back") == 0)
+            return cmd_back(tr);
+        else if (strcmp(tr[0], "backpri") == 0)
+            return cmd_backpri(tr);
+        else if (strcmp(tr[0], "bgas") == 0)
+            return cmd_bgas(tr);
         else
             printf(COLOR_RED "%s: command not found" COLOR_RESET "\n", tr[0]);
     }
