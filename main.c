@@ -13,16 +13,6 @@
 #include "p2.h"
 #include "p3.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
-#define COLOR_RED   "\x1b[31m"
-#define COLOR_GREEN "\x1b[32m"
-#define COLOR_BLUE  "\x1b[34m"
-#define COLOR_RESET "\x1b[0m"
-
 #define DELIM " \t\n"
 #define ARRAY 4096
 #define BUFFERSIZE 1024
@@ -33,16 +23,18 @@ int main(int argc, char *argv[], char *envp[])
 
     // Initialize the history array which is going to be used all along the program.
     char *history[ARRAY];
-    tList memList;
+    tMemList memList;
+    tJobList jobList;
 
-    createEmptyList(&memList);
+    createEmptyMemList(&memList);
+    createEmptyJobList(&jobList);
     history[0] = NULL;
-    loop(history, &memList, envp, environ);
+    loop(history, &memList, &jobList, envp, environ);
 
     return 1;
 }
 
-void loop(char *history[], tList *memList, char *envp[], char **environ)
+void loop(char *history[], tMemList *memList, tJobList *jobList, char *envp[], char **environ)
 {
     char *cmd = NULL;
     char **args = NULL;
@@ -55,7 +47,7 @@ void loop(char *history[], tList *memList, char *envp[], char **environ)
         cmd = read_cmd();
         save_cmd(cmd, history);
         args = split_cmd(cmd);
-        status = process_cmd(args, history, memList, envp, environ);
+        status = process_cmd(args, history, memList, jobList, envp, environ);
 
         free(cmd);
         free(args);
@@ -135,8 +127,13 @@ char **split_cmd(char *cmd)
     return tokens;
 }
 
-int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char **environ)
+int process_cmd(char **tr, char *history[], tMemList *memList, tJobList *jobList, char *envp[], char **environ)
 {
+    bool bg = false;
+
+    if (aux_isBg(tr))
+        bg = true;
+
     if (tr[0] != NULL)
     {
         if (strcmp(tr[0], "autores") == 0)
@@ -150,14 +147,14 @@ int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char *
         else if (strcmp(tr[0], "hist") == 0)
             return cmd_hist(tr, history);
         else if (strcmp(tr[0], "comando") == 0)
-            return cmd_comando(tr, history, memList, envp, environ);
+            return cmd_comando(tr, history, memList, jobList, envp, environ);
         else if (strcmp(tr[0], "infosis") == 0)
             return cmd_infosis();
         else if (strcmp(tr[0], "ayuda") == 0)
             return cmd_ayuda(tr);
         else if (strcmp(tr[0], "fin") == 0 || strcmp(tr[0], "salir") == 0 ||
                  strcmp(tr[0], "bye") == 0 || strcmp(tr[0], "exit") == 0)
-            return cmd_exit(history, memList);
+            return cmd_exit(history, memList, jobList);
         else if (strcmp(tr[0], "crear") == 0)
             return cmd_crear(tr);
         else if (strcmp(tr[0], "borrar") == 0)
@@ -188,6 +185,8 @@ int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char *
             return cmd_es(tr);
         else if (strcmp(tr[0], "priority") == 0)
             return cmd_priority(tr);
+        else if (strcmp(tr[0], "rederr") == 0)
+            return cmd_rederr(tr);
         else if (strcmp(tr[0], "entorno") == 0)
             return cmd_entorno(tr, envp, environ);
         else if (strcmp(tr[0], "mostrarvar") == 0)
@@ -211,14 +210,37 @@ int process_cmd(char **tr, char *history[], tList *memList, char *envp[], char *
         else if (strcmp(tr[0], "fgas") == 0)
             return cmd_fgas(tr);
         else if (strcmp(tr[0], "back") == 0)
-            return cmd_back(tr);
+            return cmd_back(tr, jobList);
         else if (strcmp(tr[0], "backpri") == 0)
-            return cmd_backpri(tr);
+            return cmd_backpri(tr, jobList);
         else if (strcmp(tr[0], "bgas") == 0)
-            return cmd_bgas(tr);
+            return cmd_bgas(tr, jobList);
+        else if (strcmp(tr[0], "listjobs") == 0)
+            return cmd_listjobs(jobList);
+        else if (strcmp(tr[0], "job") == 0)
+            return cmd_job(tr, jobList);
+        else if (strcmp(tr[0], "borrarjobs") == 0)
+            return cmd_borrarjobs(tr, jobList);
+        else if (bg)
+            cmd_back(tr, jobList);
         else
-            printf(COLOR_RED "%s: command not found" COLOR_RESET "\n", tr[0]);
+            cmd_fg(tr);
     }
 
     return 1;
+}
+
+bool aux_isBg(char **tr)
+{
+    int i;
+
+    for (i = 0; tr[i] != NULL; ++i);
+
+    if (strcmp(tr[i - 1], "&") == 0)
+    {
+        tr[i - 1] = NULL;
+        return true;
+    }
+    else
+        return false;
 }

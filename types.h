@@ -32,15 +32,14 @@ typedef struct tMemItemL
 
 // process list
 
-typedef struct tProcItemL
+typedef struct tJobItemL
 {
     pid_t pid;
-    int prio;
-    char *user;
-    char **args;
-    // time it started
-    // process state
-    // value or signal
-} tProcItemL;
+    char user[32];
+    char command[1024];
+    time_t time;
+    char status[9];
+    int val;
+} tJobItemL;
 
 #endif

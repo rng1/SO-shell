@@ -9,29 +9,32 @@
 
 #include "mem_list.h"
 
-void createEmptyList(tMemList *memList)
+void createEmptyMemList(tMemList *memList)
 // Creates an empty list.
 {
     // Start a list without any nodes.
     *memList = NULL;
 }
 
-bool createNode(tPosL *p)
+bool createMemNode(tMemPosL *p)
 // Creates an empty node.
 {
     // Create and assign memory to variable.
-    *p = malloc(sizeof(struct tNode));
+    *p = malloc(sizeof(struct tMemNode));
 
     return *p != NULL;
 }
 
-tPosL findTam(size_t tam, tMemList memList)
+tMemPosL findTam(size_t tam, tMemList memList)
 // Finds the position of an item in the list based on its size.
 {
     // Create an auxiliary position.
-    tPosL p;
+    tMemPosL p;
     // Iterate through the list to find the position of the given item.
     p = memList;
+
+    if (isEmptyMemList(memList))
+        return NULL;
 
     while (tam != p->data.size)
     {
@@ -44,15 +47,15 @@ tPosL findTam(size_t tam, tMemList memList)
     return p;
 }
 
-tPosL findKey(key_t key, tMemList memList)
+tMemPosL findKey(key_t key, tMemList memList)
 // Finds the position of an item in the list based on its key.
 {
     // Create an auxiliary position.
-    tPosL p;
+    tMemPosL p;
     // Iterate through the list to find the position of the given item.
     p = memList;
 
-    if (isEmptyList(memList))
+    if (isEmptyMemList(memList))
         return NULL;
 
     while (key != p->data.info.key)
@@ -66,13 +69,16 @@ tPosL findKey(key_t key, tMemList memList)
     return p;
 }
 
-tPosL findName(char name[], tMemList memList)
+tMemPosL findName(char name[], tMemList memList)
 // Finds the position of an item in the list based on its name.
 {
     // Create an auxiliary position.
-    tPosL p;
+    tMemPosL p;
     // Iterate through the list to find the position of the given item.
     p = memList;
+
+    if (isEmptyMemList(memList))
+        return NULL;
 
     while (strcmp(name, p->data.info.name) != 0)
     {
@@ -85,13 +91,16 @@ tPosL findName(char name[], tMemList memList)
     return p;
 }
 
-tPosL findAddr(void *memAddr, tMemList memList)
+tMemPosL findAddr(void *memAddr, tMemList memList)
 // Finds the position of an item in the list based on its memory address.
 {
     // Create an auxiliary position.
-    tPosL p;
+    tMemPosL p;
     // Iterate through the list to find the position of the given item.
     p = memList;
+
+    if (isEmptyMemList(memList))
+        return NULL;
 
     while (memAddr != p->data.memaddr)
     {
@@ -104,15 +113,15 @@ tPosL findAddr(void *memAddr, tMemList memList)
     return p;
 }
 
-bool insertItem(tMemItemL d, tMemList *memList) // todo: cambiar comentarios
-// Inserts an element in the list ordered by the field nickname. If the element could be inserted,
+bool insertMemItem(tMemItemL d, tMemList *memList)
+// Inserts an element in the list, unordered. If the element could be inserted,
 // the value true is returned; otherwise, false is returned.
 {
     // Declare two auxiliary positions.
-    tPosL n, p;
+    tMemPosL n, p;
 
     // Create a node in one of the lists, if there's enough memory, turn (n) into a new node.
-    if (!createNode(&n))
+    if (!createMemNode(&n))
         return false;
     else
     {
@@ -132,10 +141,10 @@ bool insertItem(tMemItemL d, tMemList *memList) // todo: cambiar comentarios
     }
 }
 
-void deleteAtPosition(tPosL p, tMemList *memList)
+void deleteMemAtPosition(tMemPosL p, tMemList *memList)
 {
     // Create an auxiliary position.
-    tPosL q;
+    tMemPosL q;
 
     // Delete the first element.
     if (*memList == p)
@@ -157,12 +166,12 @@ void deleteAtPosition(tPosL p, tMemList *memList)
     free(p);
 }
 
-void clearList(tMemList *memList)
+void clearMemList(tMemList *memList)
 {
     // Create an auxiliary position.
-    tPosL p, aux;
+    tMemPosL p, aux;
 
-    if (isEmptyList(*memList))
+    if (isEmptyMemList(*memList))
         return;
     else
     {
@@ -181,27 +190,27 @@ void clearList(tMemList *memList)
     }
 }
 
-bool isEmptyList(tMemList memList)
+bool isEmptyMemList(tMemList memList)
 // Determines whether the list is empty or not.
 {
     // Check if there are any items within the list.
     return (NULL == memList);
 }
 
-tMemItemL getItem(tPosL p, tMemList memList)
+tMemItemL getMemItem(tMemPosL p)
 // Retrieves the content of the element at the indicated position.
 {
     // Return the data of the item at the given position.
     return p->data;
 }
 
-tPosL first(tMemList memList)
+tMemPosL firstMem(tMemList memList)
 // Returns the position of the first element of the list.
 {
     return memList;
 }
 
-tPosL next(tPosL p)
+tMemPosL nextMem(tMemPosL p)
 // Returns the position preceding the one we indicate (or NULL if the specified position has no preceding element).
 {
     return p->next;

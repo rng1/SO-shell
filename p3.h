@@ -18,6 +18,86 @@
 #include <stdlib.h>
 #include <pwd.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <time.h>
+
+#include "job_list.h"
+
+struct SIG
+{
+    char *name;
+    int sig;
+};
+
+static struct SIG sigstrnum[] = {
+        {"HUP", SIGHUP},
+        {"INT", SIGINT},
+        {"QUIT", SIGQUIT},
+        {"ILL", SIGILL},
+        {"TRAP", SIGTRAP},
+        {"ABRT", SIGABRT},
+        {"IOT", SIGIOT},
+        {"BUS", SIGBUS},
+        {"FPE", SIGFPE},
+        {"KILL", SIGKILL},
+        {"USR1", SIGUSR1},
+        {"SEGV", SIGSEGV},
+        {"USR2", SIGUSR2},
+        {"PIPE", SIGPIPE},
+        {"ALRM", SIGALRM},
+        {"TERM", SIGTERM},
+        {"CHLD", SIGCHLD},
+        {"CONT", SIGCONT},
+        {"STOP", SIGSTOP},
+        {"TSTP", SIGTSTP},
+        {"TTIN", SIGTTIN},
+        {"TTOU", SIGTTOU},
+        {"URG", SIGURG},
+        {"XCPU", SIGXCPU},
+        {"XFSZ", SIGXFSZ},
+        {"VTALRM", SIGVTALRM},
+        {"PROF", SIGPROF},
+        {"WINCH", SIGWINCH},
+        {"IO", SIGIO},
+        {"SYS", SIGSYS},
+#ifdef SIGPOLL
+        {"POLL", SIGPOLL},
+#endif
+#ifdef SIGPWR
+        {"PWR", SIGPWR},
+#endif
+#ifdef SIGEMT
+        {"EMT", SIGEMT},
+#endif
+#ifdef SIGINFO
+        {"INFO", SIGINFO},
+#endif
+#ifdef SIGSTKFLT
+        {"STKFLT", SIGSTKFLT},
+#endif
+#ifdef SIGCLD
+        {"CLD", SIGCLD},
+#endif
+#ifdef SIGLOST
+        {"LOST", SIGLOST},
+#endif
+#ifdef SIGCANCEL
+        {"CANCEL", SIGCANCEL},
+#endif
+#ifdef SIGTHAW
+        {"THAW", SIGTHAW},
+#endif
+#ifdef SIGFREEZE
+        {"FREEZE", SIGFREEZE},
+#endif
+#ifdef SIGLWP
+        {"LWP", SIGLWP},
+#endif
+#ifdef SIGWAITING
+        {"WAITING", SIGWAITING},
+#endif
+        {NULL, -1},
+        };
 
 int cmd_priority(char **tr);
 /*
@@ -25,6 +105,8 @@ int cmd_priority(char **tr);
  * process executing the shell is shown. If both arguments are specified, the priority of process pid will be changed
  * to value.
  */
+
+int cmd_rederr(char **tr);
 
 int cmd_entorno(char **tr, char *envp[], char **environ);
 void aux_showEnv(char **env, char *env_name);
@@ -52,24 +134,36 @@ int cmd_fork();
  */
 
 int cmd_ejec(char **tr);
+int cmd_ejecpri(char **tr);
+int cmd_ejecas(char **tr);
 /*
  * Execute, replacing the shell, the desired program prog with arguments arg1, arg2, ...
  */
 
-int cmd_ejecpri(char **tr);
-
-int cmd_ejecas(char **tr);
-
 int cmd_fg(char **tr);
-
 int cmd_fgpri(char **tr);
-
 int cmd_fgas(char **tr);
+/*
+ * Execute in foreground the desired program prog with arguments arg1, arg2, ...
+ */
 
-int cmd_back(char **tr);
+int cmd_back(char **tr, tJobList *jobList);
+int cmd_backpri(char **tr, tJobList *jobList);
+int cmd_bgas(char **tr, tJobList *jobList);
+/*
+ * Execute in background the desired program prog with arguments arg1, arg2, ...
+ */
 
-int cmd_backpri(char **tr);
+int cmd_listjobs(tJobList *jobList);
 
-int cmd_bgas(char **tr);
+int cmd_job(char **tr, tJobList *jobList);
+
+int cmd_borrarjobs(char **tr, tJobList *jobList);
+
+void aux_deleteJobList(char *status, tJobList *jobList);
+void aux_jobListPrint(tJobItemL item);
+void aux_addJobList(pid_t pid, char **tr, tJobList *jobList);
+
+char *aux_sigName(int sig);
 
 #endif

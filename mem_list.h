@@ -17,32 +17,32 @@
 #include "types.h"
 
 /** type declaration */
-typedef struct tNode *tPosL;
-struct tNode
+typedef struct tMemNode *tMemPosL;
+struct tMemNode
 {
     tMemItemL data;
-    tPosL next;
+    tMemPosL next;
 };
-typedef tPosL tMemList;
+typedef tMemPosL tMemList;
 
 /** function prototypes **/
 
 // Generators
-void createEmptyList(tMemList *memList);
-bool insertItem(tMemItemL d, tMemList *memList);
+void createEmptyMemList(tMemList *memList);
+bool insertMemItem(tMemItemL d, tMemList *memList);
 
 // Destructors
-void deleteAtPosition(tPosL p, tMemList *memList);
-void clearList(tMemList *memList);
+void deleteMemAtPosition(tMemPosL p, tMemList *memList);
+void clearMemList(tMemList *memList);
 
 // Observers
-tPosL findTam(size_t tam, tMemList memList);
-tPosL findKey(key_t key, tMemList memList);
-tPosL findName(char name[], tMemList memList);
-tPosL findAddr(void *memAddr, tMemList memList);
-bool isEmptyList(tMemList memList);
-tMemItemL getItem(tPosL p, tMemList memList);
-tPosL first(tMemList memList);
-tPosL next(tPosL p);
+tMemPosL findTam(size_t tam, tMemList memList);
+tMemPosL findKey(key_t key, tMemList memList);
+tMemPosL findName(char name[], tMemList memList);
+tMemPosL findAddr(void *memAddr, tMemList memList);
+bool isEmptyMemList(tMemList memList);
+tMemItemL getMemItem(tMemPosL p);
+tMemPosL firstMem(tMemList memList);
+tMemPosL nextMem(tMemPosL p);
 
 #endif

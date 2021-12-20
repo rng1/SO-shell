@@ -14,7 +14,6 @@
 
 #include "p0.h"
 #include "p2.h"
-#include "mem_list.h"
 #include "color.h"
 
 int global_var1 = 5, global_var2 = 6, global_var3 = 7;
@@ -31,7 +30,7 @@ int cmd_malloc(char **tr, tMemList *memList)
     else if (strcmp(tr[1], "-free") == 0)
     {
         // Check if there are multiple or no arguments, or if the memory list is empty.
-        if (isEmptyList(*memList))
+        if (isEmptyMemList(*memList))
             printf(COLOR_RED "malloc: -free: empty list" COLOR_RESET "\n");
         else if (tr[3] != NULL)
             printf(COLOR_RED "malloc: -free: command contains more than one argument" COLOR_RESET "\n");
@@ -65,17 +64,17 @@ int cmd_malloc(char **tr, tMemList *memList)
 
 void aux_liberarMalloc(size_t tam, tMemList *memList)
 {
-    tPosL pos;
+    tMemPosL pos;
     tMemItemL aux;
 
     if ((pos = findTam(tam, *memList)) == NULL)
         aux_memListPrint("malloc", memList);
     else
     {
-        aux = getItem(pos, *memList);
+        aux = getMemItem(pos);
 
         printf("deallocated %ld at %p\n", aux.size, aux.memaddr);
-        deleteAtPosition(pos, memList);
+        deleteMemAtPosition(pos, memList);
         free(aux.memaddr);
     }
 }
@@ -94,7 +93,7 @@ int cmd_mmap(char **tr, tMemList *memList)
             aux_memListPrint("mmap", memList);
         else if (tr[3] != NULL)
             printf(COLOR_RED "mmap: -free: invalid input" COLOR_RESET "\n");
-        else if (isEmptyList(*memList))
+        else if (isEmptyMemList(*memList))
             printf(COLOR_RED "mmap: -free: empty list" COLOR_RESET "\n");
         else
             aux_liberarMap(tr[2], memList);
@@ -158,20 +157,20 @@ void *aux_mapFile(char *fname, int prot, tMemList *memList)
 
 void aux_liberarMap(char *fname, tMemList *memList)
 {
-    tPosL pos;
+    tMemPosL pos;
     tMemItemL aux;
 
     if((pos = findName(fname, *memList)) == NULL)
         aux_memListPrint("mmap", memList);
     else
     {
-        aux = getItem(pos, *memList);
+        aux = getMemItem(pos);
         printf("unmmaped file %s at %p\n", aux.info.name, aux.memaddr);
 
         if (munmap(aux.memaddr, aux.size))
             printf(COLOR_RED "mmap: munmap: %s" COLOR_RESET "\n", strerror(errno));
         else
-            deleteAtPosition(pos, memList);
+            deleteMemAtPosition(pos, memList);
     }
 }
 
@@ -239,7 +238,7 @@ int cmd_shared(char **tr, tMemList *memList)
 int cmd_dealloc(char **tr, tMemList *memList)
 {
     void *memAddr;
-    tPosL pos;
+    tMemPosL pos;
     tMemItemL aux;
     size_t tam;
 
@@ -277,7 +276,7 @@ int cmd_dealloc(char **tr, tMemList *memList)
             aux_memListPrint("all", memList);
         else
         {
-            aux = getItem(pos, *memList);
+            aux = getMemItem(pos);
 
             if (strcmp(aux.type, "malloc") == 0)
                 aux_liberarMalloc(aux.size, memList);
@@ -347,20 +346,20 @@ int aux_sharedDelKey(key_t key)
 
 void aux_liberarShared(key_t key, tMemList *memList)
 {
-    tPosL pos;
+    tMemPosL pos;
     tMemItemL aux;
 
     if ((pos = findKey(key, *memList)) == NULL)
         aux_memListPrint("shared", memList);
     else
     {
-        aux = getItem(pos, *memList);
+        aux = getMemItem(pos);
         printf("deallocated shared memory block at %p (key %d)\n", aux.memaddr, aux.info.key);
 
         if (shmdt(aux.memaddr))
             printf(COLOR_RED "liberarShared: shmdt: %s" COLOR_RESET "\n", strerror(errno));
         else
-            deleteAtPosition(pos, memList);
+            deleteMemAtPosition(pos, memList);
     }
 }
 
@@ -637,18 +636,18 @@ int aux_es_read(char **tr)
 
 void aux_memListPrint(char *func, tMemList *memList)
 {
-    tPosL pos;
+    tMemPosL pos;
     tMemItemL aux;
 
-    if (isEmptyList(*memList) == true)
+    if (isEmptyMemList(*memList) == true)
         printf(COLOR_RED "aux_memListPrint: empty list" COLOR_RESET "\n");
     else
     {
-        pos = first(*memList);
+        pos = firstMem(*memList);
 
         do
         {
-            aux = getItem(pos, *memList);
+            aux = getMemItem(pos);
 
             if ((strcmp(func, "all") == 0 || strcmp(func, aux.type) == 0) && strcmp("malloc", aux.type) == 0)
                 printf("%p: size:%zu. %s %s",
@@ -662,7 +661,7 @@ void aux_memListPrint(char *func, tMemList *memList)
                 printf("%p: size:%zu. %s memory (key %d) %s",
                        aux.memaddr, aux.size, aux.type, aux.info.key, ctime(&aux.time));
 
-            pos = next(pos);
+            pos = nextMem(pos);
         }
         while (pos != NULL);
     }
@@ -686,7 +685,7 @@ void aux_addMemList(void *ptr, size_t tam, char *func, char *fname, int fildes, 
     if (strcmp(func, "shared") == 0)
         item.info.key = key;
 
-    insertItem(item, memList);
+    insertMemItem(item, memList);
 }
 
 

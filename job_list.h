@@ -17,32 +17,30 @@
 #include "types.h"
 
 /** type declaration */
-typedef struct tNode *tPosL;
-struct tNode
+typedef struct tJobNode *tJobPosL;
+struct tJobNode
 {
-    tProcItemL data;
-    tPosL next;
+    tJobItemL data;
+    tJobPosL next;
 };
-typedef tPosL tProcList;
+typedef tJobPosL tJobList;
 
 /** function prototypes **/
 
 // Generators
-void createEmptyList(tProcList *procList);
-bool insertItem(tMemItemL d, tProcList *procList);
+void createEmptyJobList(tJobList *jobList);
+bool insertJobItem(tJobItemL d, tJobList *jobList);
+void updateJobItem(tJobItemL *d, char status[16]);
 
 // Destructors
-void deleteAtPosition(tPosL p, tProcList *procList);
-void clearList(tProcList *procList);
+void deleteJobAtPosition(tJobPosL p, tJobList *jobList);
+void clearJobList(tJobList *jobList);
 
 // Observers
-tPosL findTam(size_t tam, tProcList procList);
-tPosL findKey(key_t key, tProcList procList);
-tPosL findName(char name[], tProcList procList);
-tPosL findAddr(void *memAddr, tProcList procList);
-bool isEmptyList(tProcList procList);
-tProcItemL getItem(tPosL p, tProcList procList);
-tPosL first(tProcList procList);
-tPosL next(tPosL p);
+tJobPosL findJobItem(pid_t pid, tJobList jobList);
+bool isEmptyJobList(tJobList jobList);
+tJobItemL getJobItem(tJobPosL p);
+tJobPosL firstJob(tJobList jobList);
+tJobPosL nextJob(tJobPosL p);
 
 #endif

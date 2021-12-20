@@ -121,7 +121,7 @@ int cmd_hist(char **tr, char* history[])
     return 1;
 }
 
-int cmd_comando(char **tr, char *history[], tMemList *memList, char *envp[], char **environ)
+int cmd_comando(char **tr, char *history[], tMemList *memList, tJobList *jobList, char *envp[], char **environ)
 {
     char *ptr = NULL;
     char *cmd = NULL;
@@ -148,7 +148,7 @@ int cmd_comando(char **tr, char *history[], tMemList *memList, char *envp[], cha
             if (strcmp(args[0], "comando") == 0)
                 printf(COLOR_RED "comando: can't call itself to avoid infinite loop hazards" COLOR_RESET "\n");
             else
-                process_cmd(args, history, memList, envp, environ);
+                process_cmd(args, history, memList, jobList, envp, environ);
 
             free(cmd);
             free(args);
@@ -506,14 +506,15 @@ int cmd_ayuda(char **tr)
     return 1;
 }
 
-int cmd_exit(char* history[], tMemList *memList)
+int cmd_exit(char* history[], tMemList *memList, tJobList *jobList)
 {
     int i;
     // Iterate through the history freeing all of its occupied slots when finishing the shell.
     for (i = 0; history[i] != NULL; i++)
         free(history[i]);
 
-    clearList(memList);
+    clearMemList(memList);
+    //clearJobList(jobList);
 
     return 0;
 }

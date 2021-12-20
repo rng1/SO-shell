@@ -11,6 +11,7 @@
 #define SHELL_P0_H
 
 #include "mem_list.h"
+#include "job_list.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -56,7 +57,7 @@ int cmd_hist(char **tr, char* history[]);
  *  -N  prints the first N commands.
  */
 
-int cmd_comando(char **tr, char *history[], tList *memList, char *envp[], char **environ);
+int cmd_comando(char **tr, char *history[], tMemList *memList, tJobList *jobList, char *envp[], char **environ);
 /*
  * Repeats command number N.
  */
@@ -72,7 +73,7 @@ int cmd_ayuda(char **tr);
  *  ayuda [CMD]   gives a brief help on the usage of the given CMD.
  */
 
-int cmd_exit(char* history[], tList *memList);
+int cmd_exit(char* history[], tMemList *memList, tJobList *jobList);
 /*
  * End the shell after freeing all the allocated pointers.
  */

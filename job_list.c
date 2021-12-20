@@ -7,38 +7,33 @@
  *     DATE: 10 / 12 / 21
  */
 
-/**
- * TODO(roi)
- *      terminar la implementacion
- */
-
 #include "job_list.h"
 
-void createEmptyList(tProcList *memList)
+void createEmptyJobList(tJobList *jobList)
 // Creates an empty list.
 {
     // Start a list without any nodes.
-    *memList = NULL;
+    *jobList = NULL;
 }
 
-bool createNode(tPosL *p)
+bool createJobNode(tJobPosL *p)
 // Creates an empty node.
 {
     // Create and assign memory to variable.
-    *p = malloc(sizeof(struct tNode));
+    *p = malloc(sizeof(struct tJobNode));
 
     return *p != NULL;
 }
 
-tPosL findTam(size_t tam, tProcList memList)
-// Finds the position of an item in the list based on its size.
+tJobPosL findJobItem(pid_t pid, tJobList jobList)
+// Finds the position of an item in the list based on its PID.
 {
     // Create an auxiliary position.
-    tPosL p;
+    tJobPosL p;
     // Iterate through the list to find the position of the given item.
-    p = memList;
+    p = jobList;
 
-    while (tam != p->data.size)
+    while (pid != p->data.pid)
     {
         p = p->next;
 
@@ -49,75 +44,15 @@ tPosL findTam(size_t tam, tProcList memList)
     return p;
 }
 
-tPosL findKey(key_t key, tProcList memList)
-// Finds the position of an item in the list based on its key.
-{
-    // Create an auxiliary position.
-    tPosL p;
-    // Iterate through the list to find the position of the given item.
-    p = memList;
-
-    if (isEmptyList(memList))
-        return NULL;
-
-    while (key != p->data.info.key)
-    {
-        p = p->next;
-
-        if (p == NULL)
-            return NULL;
-    }
-
-    return p;
-}
-
-tPosL findName(char name[], tProcList memList)
-// Finds the position of an item in the list based on its name.
-{
-    // Create an auxiliary position.
-    tPosL p;
-    // Iterate through the list to find the position of the given item.
-    p = memList;
-
-    while (strcmp(name, p->data.info.name) != 0)
-    {
-        p = p->next;
-
-        if (p == NULL)
-            return NULL;
-    }
-
-    return p;
-}
-
-tPosL findAddr(void *memAddr, tProcList memList)
-// Finds the position of an item in the list based on its memory address.
-{
-    // Create an auxiliary position.
-    tPosL p;
-    // Iterate through the list to find the position of the given item.
-    p = memList;
-
-    while (memAddr != p->data.memaddr)
-    {
-        p = p->next;
-
-        if (p == NULL)
-            return NULL;
-    }
-
-    return p;
-}
-
-bool insertItem(tMemItemL d, tProcList *memList) // todo: cambiar comentarios
-// Inserts an element in the list ordered by the field nickname. If the element could be inserted,
+bool insertJobItem(tJobItemL d, tJobList *jobList)
+// Inserts an element in the list, unordered. If the element could be inserted,
 // the value true is returned; otherwise, false is returned.
 {
     // Declare two auxiliary positions.
-    tPosL n, p;
+    tJobPosL n, p;
 
     // Create a node in one of the lists, if there's enough memory, turn (n) into a new node.
-    if (!createNode(&n))
+    if (!createJobNode(&n))
         return false;
     else
     {
@@ -125,11 +60,11 @@ bool insertItem(tMemItemL d, tProcList *memList) // todo: cambiar comentarios
         n->data = d;
         n->next = NULL;
         // If the list is empty, start the list with the new item.
-        if (NULL == *memList)
-            *memList = n;
+        if (NULL == *jobList)
+            *jobList = n;
         else
         {
-            for (p = *memList; p->next != NULL; p = p->next);
+            for (p = *jobList; p->next != NULL; p = p->next);
             p->next = n;
         }
 
@@ -137,76 +72,69 @@ bool insertItem(tMemItemL d, tProcList *memList) // todo: cambiar comentarios
     }
 }
 
-void deleteAtPosition(tPosL p, tProcList *memList)
+void updateJobItem(tJobItemL *d, char status[16])
 {
-    // Create an auxiliary position.
-    tPosL q;
+    strcpy(d->status,status);
+}
 
-    // Delete the first element.
-    if (*memList == p)
-        *memList = p->next;
-        // Delete the last element.
-    else if (p->next == NULL) {
-        for(q = *memList; q->next != p; q = q->next);
-        // When 'q' is the previous node to 'p'.
-        q->next = NULL;
-    }
-        // Delete at an intermediate position.
+void deleteJobAtPosition(tJobPosL p, tJobList *jobList)
+{
+    tJobPosL q;
+
+    if (*jobList == p)
+        *jobList = p->next;
     else {
         q = p->next;
         p->data = q->data;
         p->next = q->next;
         p = q;
     }
-    // Free the unused memory.
     free(p);
 }
 
-void clearList(tProcList *memList)
+void clearJobList(tJobList *jobList)
 {
     // Create an auxiliary position.
-    tPosL p, aux;
+    tJobPosL p, aux;
 
-    if (isEmptyList(*memList))
+    if (isEmptyJobList(*jobList))
         return;
     else
     {
-        p = *memList;
+        p = *jobList;
 
         while (p != NULL)
         {
-            if (strcmp(p->data.type, "malloc") == 0)
-                free(p->data.memaddr);
             aux = p->next;
             free(p);
             p = aux;
         }
 
-        *memList = NULL;
+        *jobList = NULL;
     }
 }
 
-bool isEmptyList(tProcList memList)
+bool isEmptyJobList(tJobList jobList)
 // Determines whether the list is empty or not.
 {
     // Check if there are any items within the list.
-    return (NULL == memList);
+    return (NULL == jobList);
 }
 
-tProcItemL getItem(tPosL p, tProcList memList)
+tJobItemL getJobItem(tJobPosL p)
 // Retrieves the content of the element at the indicated position.
 {
     // Return the data of the item at the given position.
     return p->data;
 }
 
-tPosL first(tProcList memList)
+tJobPosL firstJob(tJobList jobList)
 // Returns the position of the first element of the list.
 {
-    return memList;
+    return jobList;
 }
 
-tPosL next(tPosL p)
+tJobPosL nextJob(tJobPosL p)
 // Returns the position preceding the one we indicate (or NULL if the specified position has no preceding element).
 {
     return p->next;

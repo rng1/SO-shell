@@ -7,20 +7,12 @@
  *     DATE: 10 / 12 / 21
  */
 
-/**
- * TODO
- *      @cmd_priority optimizar
- *      @cmd_rederr pendiente
- *      @cmd_cambiarvar putenv
- *      @aux_uid_set comprobar si setuid(uid) == 1 o .1
- *      @cmd_ejec hacer efectiva la finalización de la shell
- *      @cmd_back contador de trabajos ejecutados en segundo plano
- *      @cmd_*as terminar
- */
-
+#include <fcntl.h>
 #include "p3.h"
 #include "p0.h"
 #include "color.h"
+
+char *rederr_dir = NULL;
 
 int cmd_priority(char **tr)
 {
@@ -36,8 +28,8 @@ int cmd_priority(char **tr)
             printf(COLOR_RED "priority: getpriority: %s" COLOR_RESET "\n", strerror(errno));
         else
         {
-            printf(" PID\tNI\n");
-            printf("%4d\t%2d\n", pid, ret);
+            printf("%5s %3s\n", "PID", "NI");
+            printf("%5d %3d\n", pid, ret);
         }
     }
     else if (tr[2] == NULL)
@@ -49,8 +41,8 @@ int cmd_priority(char **tr)
             printf(COLOR_RED "priority: getpriority: %s" COLOR_RESET "\n", strerror(errno));
         else
         {
-            printf(" PID\tNI\n");
-            printf("%4d\t%2d\n", pid, ret);
+            printf("  PID\tNI\n");
+            printf("%5d\t%2d\n", pid, ret);
         }
     }
     else if (tr[2] != NULL)
@@ -69,9 +61,34 @@ int cmd_priority(char **tr)
     return 1;
 }
 
-/*int cmd_rederr(char **tr)
+int cmd_rederr(char **tr)
 {
-}*/
+    int fd;
+    int flags = O_WRONLY | O_CREAT;
+
+    if (tr[1] == NULL)
+    {
+        if (rederr_dir == NULL)
+            printf("Original configuration\n");
+        else
+            printf("%s", rederr_dir);
+    }
+    else if (strcmp(tr[1], "-reset") == 0)
+        dup2(STDOUT_FILENO, STDERR_FILENO);
+    else
+    {
+        if ((fd = open(tr[1], flags, 0777)) == -1)
+            printf(COLOR_RED "rederr: open: %s" COLOR_RESET "\n", strerror(errno));
+        else
+        {
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+            strcpy(rederr_dir, tr[1]);
+        }
+    }
+
+    return 1;
+}
 
 int cmd_entorno(char **tr, char *envp[], char **environ)
 {
@@ -154,6 +171,7 @@ int aux_buscarvar(char *var_name, char *env[])
 int cmd_cambiarvar(char **tr, char *envp[], char **environ)
 {
     int aux = 0;
+    char buff[1024];
 
     if (tr[1] == NULL || tr[2] == NULL || tr[3] == NULL)
     {
@@ -162,26 +180,19 @@ int cmd_cambiarvar(char **tr, char *envp[], char **environ)
     else
     {
         if (strcmp(tr[1], "-a") == 0)
-        {
             aux = aux_cambiarvar(tr[2], tr[3], envp);
-        }
         else if (strcmp(tr[1], "-e") == 0)
-        {
             aux = aux_cambiarvar(tr[2], tr[3], environ);
-        }
         else if (strcmp(tr[1], "-p") == 0)
         {
-            printf("putenv\n");
+            sprintf(buff,"%s=%s",tr[2],tr[3]);
+            putenv(buff);
         }
 
         if (aux == -1)
-        {
             printf("cambiarvar:");
-        }
         else
-        {
             printf(COLOR_RED "cambiarvar: invalid option" COLOR_RESET "\n");
-        }
 
     }
 
@@ -252,7 +263,7 @@ void aux_uid_set(char *login)
         return;
     }
 
-    if (setuid(uid) == 1)
+    if (setuid(uid) == -1)
         printf(COLOR_RED "uid set: %s" COLOR_RESET "\n", strerror(errno));
 }
 
@@ -297,34 +308,16 @@ int cmd_fork()
 
 int cmd_ejec(char **tr)
 {
-    pid_t pid;
-    int estado;
-
-    if ((pid = fork()) == 0)
-    {
-        if (execvp(tr[1], tr + 1) == -1)
+    if (execvp(tr[1], tr + 1) == -1)
             printf(COLOR_RED "ejec: %s" COLOR_RESET "\n", strerror(errno));
-    }
-    else if (pid < 0)
-    {
-        printf(COLOR_RED "ejec: %s" COLOR_RESET "\n", strerror(errno));
-    }
-    else
-    {
-        do
-            waitpid(pid, &estado, WUNTRACED);
-        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
-
-        exit(0);
-    }
 
     return 1;
 }
 
 int cmd_ejecpri(char **tr)
 {
-    pid_t pid;
-    int estado, prio;
+    pid_t pid = getpid();
+    int prio;
     int which = PRIO_PROCESS;
 
     if (tr[1] == NULL || tr[2] == NULL)
@@ -335,24 +328,12 @@ int cmd_ejecpri(char **tr)
     {
         printf(COLOR_RED "fgpri: invalid priority" COLOR_RESET "\n");
     }
-    else if ((pid = fork()) == 0)
+    else
     {
         if (setpriority(which, pid, prio))
             printf(COLOR_RED "ejecpri: setpriority: %s" COLOR_RESET "\n", strerror(errno));
         else if (execvp(tr[2], tr + 2) == -1)
             printf(COLOR_RED "ejecpri: execvp: %s" COLOR_RESET "\n", strerror(errno));
-    }
-    else if (pid < 0)
-    {
-        printf(COLOR_RED "ejecpri: %s" COLOR_RESET "\n", strerror(errno));
-    }
-    else
-    {
-        do
-            waitpid(pid, &estado, WUNTRACED);
-        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
-
-        exit(0);
     }
 
     return 1;
@@ -360,7 +341,10 @@ int cmd_ejecpri(char **tr)
 
 int cmd_ejecas(char **tr)
 {
-    printf("ejecas\n");
+    aux_uid_set(tr[1]);
+
+    if (execvp(tr[1], tr + 1) == -1)
+        printf(COLOR_RED "ejec: %s" COLOR_RESET "\n", strerror(errno));
 
     return 1;
 }
@@ -368,24 +352,23 @@ int cmd_ejecas(char **tr)
 int cmd_fg(char **tr)
 {
     pid_t pid;
-    int estado;
+    int start;
+
+    if (strcmp(tr[0], "fg") == 0)
+        start = 1;
+    else
+        start = 0;
 
     if ((pid = fork()) == 0)
     {
-        if (execvp(tr[1], tr + 1) == -1)
+        if (execvp(tr[start], tr + start) == -1)
             printf(COLOR_RED "fg: execvp: %s" COLOR_RESET "\n", strerror(errno));
         exit(0);
     }
     else if (pid < 0)
-    {
         printf(COLOR_RED "fg: %s" COLOR_RESET "\n", strerror(errno));
-    }
     else
-    {
-        do
-            waitpid(pid, &estado, WUNTRACED);
-        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
-    }
+        waitpid(pid, NULL, 0);
 
     return 1;
 }
@@ -393,7 +376,7 @@ int cmd_fg(char **tr)
 int cmd_fgpri(char **tr)
 {
     pid_t pid;
-    int estado, prio;
+    int prio;
     int which = PRIO_PROCESS;
 
     if (tr[1] == NULL || tr[2] == NULL)
@@ -408,8 +391,9 @@ int cmd_fgpri(char **tr)
     {
         if (setpriority(which, pid, prio))
             printf(COLOR_RED "fgpri: setpriority: %s" COLOR_RESET "\n", strerror(errno));
-        else if (execvp(tr[2], tr + 2) == -1)
-            printf(COLOR_RED "fgpri: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        else
+            if (execvp(tr[2], tr + 2) == -1)
+                printf(COLOR_RED "fgpri: execvp: %s" COLOR_RESET "\n", strerror(errno));
         exit(0);
     }
     else if (pid < 0)
@@ -418,59 +402,72 @@ int cmd_fgpri(char **tr)
     }
     else
     {
-        do
-            waitpid(pid, &estado, WUNTRACED);
-        while (!WIFEXITED(estado) && !WIFSIGNALED(estado));
+        waitpid(pid, NULL, 0);
     }
-
     return 1;
 }
 
 int cmd_fgas(char **tr)
 {
-    printf("fgas\n");
+    pid_t pid;
+
+    if ((pid = fork()) == 0)
+    {
+        aux_uid_set(tr[1]);
+
+        if (execvp(tr[1], tr + 1) == -1)
+            printf(COLOR_RED "fg: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        exit(0);
+    }
+    else if (pid < 0)
+    {
+        printf(COLOR_RED "fg: %s" COLOR_RESET "\n", strerror(errno));
+    }
+    else
+    {
+        waitpid(pid, NULL, 0);
+    }
 
     return 1;
 }
 
-int cmd_back(char **tr)
+int cmd_back(char **tr, tJobList *jobList)
 {
     pid_t pid;
+    int start;
+
+    if (strcmp(tr[0], "back") == 0)
+        start = 1;
+    else
+        start = 0;
 
     if ((pid = fork()) == 0)
     {
         // Placing the child in a new process group to keep it away from foreground processes.
         setpgid(0, 0);
-        if (execvp(tr[1], tr + 1) == -1)
+
+        if (execvp(tr[start], tr + start) == -1)
             printf(COLOR_RED "back: execvp: %s" COLOR_RESET "\n", strerror(errno));
         exit(0);
     }
     else if (pid < 0)
-    {
         printf(COLOR_RED "back: %s" COLOR_RESET "\n", strerror(errno));
-    }
     else
-    {
-        printf("child: %d\n", pid);
-    }
+        aux_addJobList(pid, tr + start, jobList);
 
     return 1;
 }
 
-int cmd_backpri(char **tr)
+int cmd_backpri(char **tr, tJobList *jobList)
 {
     pid_t pid;
     int prio;
     int which = PRIO_PROCESS;
 
     if (tr[1] == NULL || tr[2] == NULL)
-    {
         printf(COLOR_RED "backpri: missing arguments" COLOR_RESET "\n");
-    }
     else if ((prio = (int) strtol(tr[1], NULL, 10)) == 0)
-    {
         printf(COLOR_RED "backpri: invalid priority" COLOR_RESET "\n");
-    }
     else if ((pid = fork()) == 0)
     {
         setpgid(0, 0);
@@ -481,20 +478,200 @@ int cmd_backpri(char **tr)
         exit(0);
     }
     else if (pid < 0)
-    {
         printf(COLOR_RED "backpri: %s" COLOR_RESET "\n", strerror(errno));
+    else
+        aux_addJobList(pid, tr + 2, jobList);
+
+    return 1;
+}
+
+int cmd_bgas(char **tr, tJobList *jobList)
+{
+    pid_t pid;
+
+    if ((pid = fork()) == 0)
+    {
+        // Placing the child in a new process group to keep it away from foreground processes.
+        setpgid(0, 0);
+        aux_uid_set(tr[1]);
+
+        if (execvp(tr[1], tr + 1) == -1)
+            printf(COLOR_RED "back: execvp: %s" COLOR_RESET "\n", strerror(errno));
+        exit(0);
     }
+    else if (pid < 0)
+        printf(COLOR_RED "back: %s" COLOR_RESET "\n", strerror(errno));
+    else
+        aux_addJobList(pid, tr + 1, jobList);
+
+    return 1;
+}
+
+int cmd_listjobs(tJobList *jobList)
+{
+    tJobPosL pos;
+    tJobItemL aux;
+
+    if (isEmptyJobList(*jobList) == true)
+        printf(COLOR_RED "listjobs: empty list" COLOR_RESET "\n");
     else
     {
-        printf("child: %d\n", pid);
+        printf("%5s %-12s %3s %3s %-19s %9s %-9s %s\n",
+               "PID", "USER", "PRI", "NI", "TIME", "STATUS", "SIGNAL", "Command");
+        pos = firstJob(*jobList);
+
+        do
+        {
+            aux = getJobItem(pos);
+            aux_jobListPrint(aux);
+            pos = nextJob(pos);
+        }
+        while (pos != NULL);
     }
 
     return 1;
 }
 
-int cmd_bgas(char **tr)
+int cmd_job(char **tr, tJobList *jobList)
 {
-    printf("bgas\n");
+    pid_t pid;
+    tJobPosL pos;
+
+    if (tr[1] == NULL || tr[2] == NULL)
+        cmd_listjobs(jobList);
+    else if (strcmp(tr[1], "-fg") == 0)
+        printf("job -fg\n");
+    else
+    {
+        pid = (pid_t) strtol(tr[2], NULL, 10);
+        if ((pos = findJobItem(pid, *jobList)) == NULL)
+            printf(COLOR_RED "job: %s" COLOR_RESET "\n", strerror(errno));
+        else
+            aux_jobListPrint(getJobItem(pos));
+    }
 
     return 1;
+}
+
+int cmd_borrarjobs(char **tr, tJobList *jobList)
+{
+    char *sig  = "SIGNALED";
+    char *term = "EXITED";
+
+    if (tr[1] == NULL)
+        printf(COLOR_RED "borrarjobs: missing arguments" COLOR_RESET "\n");
+    else if (strcmp(tr[1], "-clear") == 0)
+        clearJobList(jobList);
+    else if (strcmp(tr[1], "-sig") == 0)
+        aux_deleteJobList(sig, jobList);
+    else if (strcmp(tr[1], "-term") == 0)
+        aux_deleteJobList(term, jobList);
+    else if (strcmp(tr[1], "-all") == 0)
+    {
+        aux_deleteJobList(sig, jobList);
+        aux_deleteJobList(term, jobList);
+    }
+    else
+        printf(COLOR_RED "borrarjobs: invalid input" COLOR_RESET "\n");
+
+    return 1;
+}
+
+void aux_deleteJobList(char *status, tJobList *jobList)
+{
+    tJobPosL pos;
+    tJobItemL aux;
+
+    pos = firstJob(*jobList);
+
+    do
+    {
+        aux = getJobItem(pos);
+        printf("eliminando %d status %s", aux.pid, aux.status);
+        if (strcmp(status, aux.status) == 0) {
+            deleteJobAtPosition(pos, jobList);
+        }
+        pos = nextJob(pos);
+    }
+    while (pos != NULL);
+}
+
+void aux_jobListPrint(tJobItemL item)
+{
+    struct tm *tm_item;
+    int which = PRIO_PROCESS;
+    int ni, wstatus;
+
+    if ((ni = getpriority(which, item.pid)) == -1)
+        printf(COLOR_RED "priority: getpriority: %s" COLOR_RESET "\n", strerror(errno));
+
+    if (waitpid(item.pid, &wstatus, WNOHANG | WUNTRACED | WCONTINUED) == item.pid)
+    {
+        if (WIFSIGNALED(wstatus))
+        {
+            updateJobItem(&item, "SIGNALED");
+            item.val = WTERMSIG(wstatus);
+        }
+        else if (WIFEXITED(wstatus))
+        {
+            updateJobItem(&item, "EXITED");
+            item.val = WEXITSTATUS(wstatus);
+        }
+        else if (WIFCONTINUED(wstatus))
+        {
+            updateJobItem(&item, "CONTINUED");
+            item.val = 0;
+        }
+        else if (WIFSTOPPED(wstatus))
+        {
+            updateJobItem(&item, "STOPPED");
+            item.val = WSTOPSIG(wstatus);
+        }
+    }
+
+    time(&item.time);
+    tm_item = localtime(&item.time);
+
+    printf("%5d %-12s %3d %3d %d/%02d/%02d %02d:%02d:%02d %9s ",
+           item.pid, item.user, 20 + ni, ni, tm_item->tm_year + 1900, tm_item->tm_mon + 1, tm_item->tm_mday,
+           tm_item->tm_hour, tm_item->tm_min, tm_item->tm_sec, item.status);
+
+    if (strcmp(item.status, "SIGNALED") == 0)
+        printf("(%-6s) ", aux_sigName(item.val));
+    else
+        printf("(%-6d) ", item.val);
+
+    printf(" %-s\n", item.command);
+}
+
+void aux_addJobList(pid_t pid, char **tr, tJobList *jobList)
+{
+    tJobItemL item;
+    int i;
+
+    item.pid = pid;
+    item.time = time(NULL);
+    strcpy(item.user, getpwuid(getuid())->pw_name);
+    strcpy(item.command, tr[0]);
+    strcpy(item.status, "ACTIVATED");
+    item.val = 0;
+
+    for (i = 1;  tr[i] != NULL; ++i)
+    {
+        strcat(item.command, " ");
+        strcat(item.command, tr[i]);
+    }
+
+    insertJobItem(item, jobList);
+}
+
+char *aux_sigName(int sig)
+{
+    int i;
+
+    for (i = 0; sigstrnum[i].name != NULL; ++i)
+        if (sig == sigstrnum[i].sig)
+            return sigstrnum[i].name;
+
+    return "SIGUNKNOWN";
 }
