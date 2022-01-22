@@ -1,7 +1,7 @@
 # Unix shell in C
 This shell is part of the semestral asignment for the Operating Systems 2021/2022 course at the UDC (Universidade da Coruña). All of the code was written in C, and since many of the program's functions use system specific libraries, it certainly won't work in Windows or Mac systems.
 
-There is another optial assignment that I didn't have the time to finish, but I may finish it in my spare time (although I don't really have much of that).
+There is another optional assignment that I didn't have the time to finish, but I may finish it in my spare time (although I don't really have much of that).
 
 All PDFs with the assignments are posted.
 
